@@ -15,6 +15,7 @@ export default function Navbar({ initialAuth = false }: { initialAuth?: boolean 
     const theme = useSelector((state: RootState) => state.theme?.theme || "light");
     const dispatch = useDispatch();
     const { isAuthenticated, invalidateAuth } = useAuthStatus();
+    const reduxAuth = useSelector((state: RootState) => state.auth?.isAuthenticated || false);
 
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -51,8 +52,8 @@ export default function Navbar({ initialAuth = false }: { initialAuth?: boolean 
         }
     };
 
-    // Use React Query auth status
-    const shouldShowAuthMenu = isAuthenticated || initialAuth;
+    // Use React Query auth status OR Redux state for immediate update after login/signup
+    const shouldShowAuthMenu = isAuthenticated || reduxAuth || initialAuth;
 
     if (!mounted) {
         return (

@@ -2,13 +2,16 @@
 
 import React, { useEffect } from 'react';
 import Link from 'next/link';
+import { useSelector } from 'react-redux';
 import { useAuth } from '../hooks/useAuth';
 import { useAuthStatus } from '../hooks/useAuthStatus';
+import { RootState } from '../store';
 import { FiLayout, FiCreditCard, FiUser, FiLogOut, FiLogIn, FiUserPlus } from 'react-icons/fi';
 
 export default function NavAuthMenu({ initialAuth }: { initialAuth: boolean }) {
   const { isAuthenticated, invalidateAuth } = useAuthStatus();
   const { logout } = useAuth();
+  const reduxAuth = useSelector((state: RootState) => state.auth?.isAuthenticated || false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -29,7 +32,7 @@ export default function NavAuthMenu({ initialAuth }: { initialAuth: boolean }) {
     invalidateAuth();
   };
 
-  const shouldShowAuth = isAuthenticated || initialAuth;
+  const shouldShowAuth = isAuthenticated || reduxAuth || initialAuth;
 
   return (
     <div className="flex items-center gap-4">

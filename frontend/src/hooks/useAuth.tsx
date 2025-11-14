@@ -15,7 +15,9 @@ export function useAuth() {
     const login = useCallback(async (email: string, password: string) => {
         const { data } = await http.post('/auth/login', { email: email.trim(), password });
         dispatch(setAuthenticated(true));
-        // Invalidate auth query to trigger refetch
+        // Set query data immediately to true for instant UI update
+        queryClient.setQueryData(["auth-status"], true);
+        // Also invalidate to ensure fresh check
         queryClient.invalidateQueries({ queryKey: ["auth-status"] });
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new Event('auth-changed'));
@@ -26,7 +28,9 @@ export function useAuth() {
     const signup = useCallback(async (email: string, password: string, name: string) => {
         const { data } = await http.post('/auth/signup', { email: email.trim(), password, name: name.trim() });
         dispatch(setAuthenticated(true));
-        // Invalidate auth query to trigger refetch
+        // Set query data immediately to true for instant UI update
+        queryClient.setQueryData(["auth-status"], true);
+        // Also invalidate to ensure fresh check
         queryClient.invalidateQueries({ queryKey: ["auth-status"] });
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new Event('auth-changed'));
