@@ -1,4 +1,4 @@
-import {render, screen, fireEvent, waitFor} from "@testing-library/react";
+import {render, screen, fireEvent, waitFor, act} from "@testing-library/react";
 import {Provider} from "react-redux";
 import {configureStore} from "@reduxjs/toolkit";
 import Navbar from "../../components/Navbar";
@@ -113,10 +113,15 @@ describe("Navbar", () => {
             expect(screen.getByText("Entrar")).toBeInTheDocument();
         }, {timeout: 3000});
 
-        store.dispatch(setAuthenticated(true));
-        Object.defineProperty(document, "cookie", {
-            writable: true,
-            value: "paycode_session=test-token",
+        await act(async () => {
+            store.dispatch(setAuthenticated(true));
+            Object.defineProperty(document, "cookie", {
+                writable: true,
+                value: "paycode_session=test-token",
+            });
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('auth-changed'));
+            }
         });
 
         rerender(

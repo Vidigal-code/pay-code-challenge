@@ -69,16 +69,20 @@ export class TransferUseCase {
       });
     }
 
+    const senderBalance = Number(senderWallet.balance);
+    const transferAmount = Number(input.amount);
+    
     const senderWalletEntity = Wallet.create({
       id: senderWallet.id,
       userId: senderWallet.userId,
-      balance: Number(senderWallet.balance),
+      balance: senderBalance,
       createdAt: senderWallet.createdAt,
       updatedAt: senderWallet.updatedAt,
     });
 
     // Validate balance before transfer
-    if (!senderWalletEntity.canWithdraw(input.amount)) {
+    if (!senderWalletEntity.canWithdraw(transferAmount)) {
+      this.logger.warn(`Insufficient balance: ${senderBalance} < ${transferAmount} for user ${input.senderId}`);
       throw new ApplicationError("INSUFFICIENT_BALANCE");
     }
 

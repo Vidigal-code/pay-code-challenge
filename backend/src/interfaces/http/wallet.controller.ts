@@ -178,21 +178,25 @@ export class WalletController {
     })
     @ApiResponse({status: 400, type: ErrorResponse, description: "Insufficient balance, invalid amount, or cannot transfer to self"})
     @ApiResponse({status: 404, type: ErrorResponse, description: "Receiver not found"})
-    async transfer(
-        @CurrentUser() user: User,
-        @Body() dto: TransferDto,
-    ) {
-        const userId = user?.sub || user?.id;
-        if (!userId) {
-            throw new ApplicationError("USER_NOT_AUTHENTICATED");
-        }
-        return this.transferUseCase.execute({
-            senderId: userId,
-            receiverId: dto.receiverId,
-            amount: dto.amount,
-            description: dto.description,
-        });
-    }
+            async transfer(
+                @CurrentUser() user: User,
+                @Body() dto: TransferDto,
+            ) {
+                const userId = user?.sub || user?.id;
+                if (!userId) {
+                    throw new ApplicationError("USER_NOT_AUTHENTICATED");
+                }
+                const transferAmount = Number(dto.amount);
+                if (isNaN(transferAmount) || transferAmount <= 0) {
+                    throw new ApplicationError("INVALID_AMOUNT");
+                }
+                return this.transferUseCase.execute({
+                    senderId: userId,
+                    receiverId: dto.receiverId,
+                    amount: transferAmount,
+                    description: dto.description,
+                });
+            }
 
     @Post("transactions/:transactionId/reverse")
     @HttpCode(200)

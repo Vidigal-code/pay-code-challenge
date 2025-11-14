@@ -39,10 +39,15 @@ export default function SignupPage() {
                             try {
                                 const response = await signupAction(email.trim(), password, name.trim());
                                 setAuthenticated(true);
+                                if (typeof window !== 'undefined') {
+                                    window.dispatchEvent(new Event('auth-changed'));
+                                }
                                 const code = response?.code || 'USER_CREATED';
                                 const message = getSuccessMessage(code);
                                 show({type: "success", message});
-                                router.push("/dashboard");
+                                setTimeout(() => {
+                                    router.push("/dashboard");
+                                }, 100);
                             } catch (err) {
                                 const m = getErrorMessage(err, "Falha ao criar conta");
                                 show({type: "error", message: m});

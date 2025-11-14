@@ -14,10 +14,13 @@ export class WalletPrismaRepository implements WalletRepository {
 
   async create(data: CreateWalletInput): Promise<Wallet> {
     try {
+      const balance = data.balance !== undefined 
+        ? (typeof data.balance === 'string' ? parseFloat(data.balance) : Number(data.balance))
+        : 0;
       const wallet = await this.prisma.wallet.create({
         data: {
           userId: data.userId,
-          balance: data.balance ?? 0,
+          balance: isNaN(balance) ? 0 : balance,
         },
       });
       return this.toDomain(wallet);
@@ -49,10 +52,13 @@ export class WalletPrismaRepository implements WalletRepository {
       throw new Error("Balance is required for wallet update");
     }
     try {
+      const balance = typeof data.balance === 'string' 
+        ? parseFloat(data.balance) 
+        : Number(data.balance);
       const wallet = await this.prisma.wallet.update({
         where: { id: data.id },
         data: {
-          balance: data.balance,
+          balance: isNaN(balance) ? 0 : balance,
         },
       });
       return this.toDomain(wallet);
@@ -70,10 +76,13 @@ export class WalletPrismaRepository implements WalletRepository {
   }
 
   private toDomain(record: any): Wallet {
+    const balance = typeof record.balance === 'string' 
+      ? parseFloat(record.balance) 
+      : Number(record.balance);
     return Wallet.create({
       id: record.id,
       userId: record.userId,
-      balance: Number(record.balance),
+      balance: isNaN(balance) ? 0 : balance,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     });

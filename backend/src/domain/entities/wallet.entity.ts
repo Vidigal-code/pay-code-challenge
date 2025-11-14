@@ -35,7 +35,9 @@ export class Wallet {
     }
 
     canWithdraw(amount: number): boolean {
-        return this.props.balance >= amount;
+        const balance = Number(this.props.balance);
+        const withdrawAmount = Number(amount);
+        return balance >= withdrawAmount;
     }
 
     deposit(amount: number): void {

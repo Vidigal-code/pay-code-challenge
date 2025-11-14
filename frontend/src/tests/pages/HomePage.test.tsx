@@ -1,4 +1,4 @@
-import {render, screen, waitFor} from "@testing-library/react";
+import {render, screen, waitFor, act} from "@testing-library/react";
 import {useRouter} from "next/navigation";
 import HomePage from "../../app/page";
 
@@ -50,7 +50,7 @@ describe("HomePage", () => {
         });
     });
 
-    it("should redirect to wallet if session exists", () => {
+    it("should redirect to wallet if session exists", async () => {
         const mockPush = jest.fn();
         (useRouter as jest.Mock).mockReturnValue({
             push: mockPush,
@@ -60,10 +60,13 @@ describe("HomePage", () => {
             value: "paycode_session=test",
         });
 
-        render(<HomePage />);
-        setTimeout(() => {
+        await act(async () => {
+            render(<HomePage />);
+        });
+
+        await waitFor(() => {
             expect(mockPush).toHaveBeenCalledWith("/wallet");
-        }, 100);
+        }, {timeout: 2000});
     });
 });
 

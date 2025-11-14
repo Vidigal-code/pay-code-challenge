@@ -186,13 +186,9 @@ export default function WalletPage() {
             return;
         }
         
-        const currentBalance = walletQuery.data?.wallet?.balance || 0;
-        if (currentBalance < amount) {
-            show({ type: 'error', message: 'Saldo insuficiente para completar esta transação' });
-            return;
-        }
+        const transferAmountNum = Number(amount.toFixed(2));
         
-        transferMutation.mutate({ receiverId: transferReceiverId.trim(), amount: Number(amount.toFixed(2)), description: transferDescription || undefined });
+        transferMutation.mutate({ receiverId: transferReceiverId.trim(), amount: transferAmountNum, description: transferDescription || undefined });
     };
 
     const handleReverseClick = (transactionId: string) => {

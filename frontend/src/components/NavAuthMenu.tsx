@@ -10,7 +10,10 @@ import { FiLayout, FiCreditCard, FiUser, FiLogOut, FiLogIn, FiUserPlus } from 'r
 
 function readCookie(name: string): string | undefined {
     if (typeof document === "undefined") return undefined;
-    const match = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/([.$?*|{}()[]\\\/+^])/g, "\\$1") + "=([^;]*)"));
+
+    const match = document.cookie.match(new RegExp("(?:^|; )" +
+        name.replace(/([.$?*|{}()[]\\\/+^])/g, "\\$1") + "=([^;]*)"));
+
     return match ? decodeURIComponent(match[1]) : undefined;
 }
 
@@ -37,7 +40,15 @@ export default function NavAuthMenu({ initialAuth }: { initialAuth: boolean }) {
 
     checkAuth();
     
-    if (!mounted) return;
+    if (!mounted) {
+      const handleAuthChange = () => {
+        checkAuth();
+      };
+      window.addEventListener('auth-changed', handleAuthChange);
+      return () => {
+        window.removeEventListener('auth-changed', handleAuthChange);
+      };
+    }
     
     let mountedFlag = true;
     
@@ -46,7 +57,9 @@ export default function NavAuthMenu({ initialAuth }: { initialAuth: boolean }) {
     }, 300);
     
     const handleAuthChange = () => {
-      if (mountedFlag) checkAuth();
+      if (mountedFlag) {
+        checkAuth();
+      }
     };
     
     window.addEventListener('auth-changed', handleAuthChange);
@@ -60,12 +73,18 @@ export default function NavAuthMenu({ initialAuth }: { initialAuth: boolean }) {
     };
   }, [storeAuth, mounted, initialAuth]);
 
+  useEffect(() => {
+    if (storeAuth) {
+      setIsAuth(true);
+    }
+  }, [storeAuth]);
+
   const handleLogout = async () => {
     await logout();
     setIsAuth(false);
   };
 
-  const shouldShowAuth = isAuth || storeAuth || (typeof window !== "undefined" && !!readCookie(SESSION_COOKIE));
+  const shouldShowAuth = storeAuth || isAuth || (typeof window !== "undefined" && !!readCookie(SESSION_COOKIE));
 
   return (
     <div className="flex items-center gap-4">

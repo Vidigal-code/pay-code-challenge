@@ -38,8 +38,13 @@ export default function LoginPage() {
                             try {
                                 const response = await loginAction(email.trim(), password);
                                 setAuthenticated(true);
+                                if (typeof window !== 'undefined') {
+                                    window.dispatchEvent(new Event('auth-changed'));
+                                }
                                 show({type: "success", message: "Login realizado com sucesso"});
-                                router.push("/dashboard");
+                                setTimeout(() => {
+                                    router.push("/dashboard");
+                                }, 100);
                             } catch (err) {
                                 const m = getErrorMessage(err, "Falha no login");
                                 show({type: "error", message: m});

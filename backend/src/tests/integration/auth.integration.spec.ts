@@ -29,7 +29,7 @@ describe("Auth Integration Tests (e2e)", () => {
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     
     try {
-      const dbReady = await waitForDatabase(prisma, 10);
+      const dbReady = await waitForDatabase(prisma, 30);
       if (!dbReady) {
         console.warn("Database not available, skipping integration tests");
         dbAvailable = false;
@@ -39,14 +39,14 @@ describe("Auth Integration Tests (e2e)", () => {
       await app.init();
       dbAvailable = true;
     } catch (error: any) {
-      if (error?.message?.includes("Can't reach database server") || error?.code === "ECONNREFUSED") {
+      if (error?.message?.includes("Can't reach database server") || error?.code === "ECONNREFUSED" || error?.code === "P1001") {
         console.warn("Database not available, skipping integration tests");
         dbAvailable = false;
         return;
       }
       throw error;
     }
-  }, 30000);
+  }, 60000);
 
   afterAll(async () => {
     if (app && prisma && dbAvailable) {

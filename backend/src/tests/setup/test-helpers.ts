@@ -20,16 +20,17 @@ export const getTestApiUrl = (): string => {
   return isDocker ? "http://api:4000" : (process.env.API_URL || "http://localhost:4000");
 };
 
-export const waitForDatabase = async (prisma: any, maxRetries = 10): Promise<boolean> => {
+export const waitForDatabase = async (prisma: any, maxRetries = 30): Promise<boolean> => {
   for (let i = 0; i < maxRetries; i++) {
     try {
       await prisma.$queryRaw`SELECT 1`;
       return true;
-    } catch (error) {
+    } catch (error: any) {
       if (i === maxRetries - 1) {
+        console.warn(`Database connection failed after ${maxRetries} attempts:`, error?.message);
         return false;
       }
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
   return false;

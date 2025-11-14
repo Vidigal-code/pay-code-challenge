@@ -12,8 +12,11 @@ import NavAuthMenu from "./NavAuthMenu";
 
 function readCookie(name: string): string | undefined {
     if (typeof document === "undefined") return undefined;
-    const match = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/([.$?*|{}()[]\\\/+^])/g, "\\$1") + "=([^;]*)"));
+
+    const match = document.cookie.match(new RegExp("(?:^|; )" +
+        name.replace(/([.$?*|{}()[]\\\/+^])/g, "\\$1") + "=([^;]*)"));
     return match ? decodeURIComponent(match[1]) : undefined;
+
 }
 
 export default function Navbar({ initialAuth = false }: { initialAuth?: boolean }) {
@@ -73,8 +76,9 @@ export default function Navbar({ initialAuth = false }: { initialAuth?: boolean 
     useEffect(() => {
         if (!mounted || typeof window === "undefined") return;
         const hasCookie = !!readCookie(SESSION_COOKIE);
-        if (hasCookie !== isAuth) {
-            setIsAuth(hasCookie);
+        const authState = hasCookie || reduxAuth;
+        if (authState !== isAuth) {
+            setIsAuth(authState);
         }
     }, [reduxAuth, mounted, isAuth]);
 
@@ -166,25 +170,28 @@ export default function Navbar({ initialAuth = false }: { initialAuth?: boolean 
                             <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-800">
                                 <div className="flex flex-col gap-4">
                                     <div className="flex flex-col gap-2">
-                                        {isAuth ? (
+                                        {(isAuth || reduxAuth || (typeof window !== "undefined" && !!readCookie(SESSION_COOKIE))) ? (
                                             <>
                                                 <Link
                                                     href="/dashboard"
-                                                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2"
+                                                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600
+                                                    dark:hover:text-blue-400 transition-colors py-2"
                                                     onClick={() => setIsMenuOpen(false)}
                                                 >
                                                     Dashboard
                                                 </Link>
                                                 <Link
                                                     href="/wallet"
-                                                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2"
+                                                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600
+                                                    dark:hover:text-blue-400 transition-colors py-2"
                                                     onClick={() => setIsMenuOpen(false)}
                                                 >
                                                     Carteira
                                                 </Link>
                                                 <Link
                                                     href="/profile"
-                                                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2"
+                                                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600
+                                                    dark:hover:text-blue-400 transition-colors py-2"
                                                     onClick={() => setIsMenuOpen(false)}
                                                 >
                                                     Perfil
@@ -194,7 +201,8 @@ export default function Navbar({ initialAuth = false }: { initialAuth?: boolean 
                                                         handleLogout();
                                                         setIsMenuOpen(false);
                                                     }}
-                                                    className="text-left text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors py-2"
+                                                    className="text-left text-gray-700 dark:text-gray-300 hover:text-red-600
+                                                    dark:hover:text-red-400 transition-colors py-2"
                                                 >
                                                     Sair
                                                 </button>
@@ -203,14 +211,16 @@ export default function Navbar({ initialAuth = false }: { initialAuth?: boolean 
                                             <>
                                                 <Link
                                                     href="/login"
-                                                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2"
+                                                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600
+                                                    dark:hover:text-blue-400 transition-colors py-2"
                                                     onClick={() => setIsMenuOpen(false)}
                                                 >
                                                     Entrar
                                                 </Link>
                                                 <Link
                                                     href="/signup"
-                                                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-center"
+                                                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600
+                                                    text-white rounded-lg hover:shadow-lg transition-all text-center"
                                                     onClick={() => setIsMenuOpen(false)}
                                                 >
                                                     Criar Conta
