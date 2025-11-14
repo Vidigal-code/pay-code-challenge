@@ -87,18 +87,40 @@ services:
     command: sh -c "npm run start"
 
   api-test:
-    image: node:20-alpine
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      - DOCKER_ENV=true
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/paycode?schema=public
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
     working_dir: /app
     volumes:
       - ./backend:/app
-    command: sh -c "npm ci && npm test"
+      - /app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+    command: sh -c "npx prisma generate && npm test"
     profiles: ["test"]
 
   web-test:
-    image: node:20-alpine
+    build:
+      context: ./frontend
+    env_file: ./frontend/.env
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:4000
     working_dir: /app
     volumes:
       - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - api
     command: sh -c "npm ci && npm test"
     profiles: ["test"]
 

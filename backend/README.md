@@ -415,7 +415,7 @@ docker compose exec rabbitmq rabbitmqctl list_queues name arguments
 - ✅ **JWT + JWE**: Criptografia de payload além de assinatura
 - ✅ **JWKS**: Rotação automática de chaves (24 horas)
 - ✅ **KMS**: Gerenciamento seguro de chaves (pronto para AWS/GCP)
-- ✅ **OWASP API Security Top 10**: Proteções contra vulnerabilidades
+- ✅ **OWASP API Security**: Proteções contra vulnerabilidades
 - ✅ **Rate Limiting**: 
   - Geral: 30 req/min
   - Transações: 10 req/min

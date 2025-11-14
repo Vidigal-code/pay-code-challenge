@@ -8,7 +8,7 @@
 - ✅ JWKS (JSON Web Key Set) para rotação automática de chaves
 - ✅ KMS (Key Management Service) simulado - pronto para AWS/GCP
 - ✅ JWE para dados sensíveis (CPF, cartão, transferências)
-- ✅ Proteções OWASP API Security Top 10 (2023)
+- ✅ Proteções OWASP API Security 
 - ✅ Depósito, transferência e reversão de transações
 - ✅ Rollback automático de transações em caso de falha
 - ✅ Validação de saldo antes de transferências
@@ -53,7 +53,7 @@
 - **EDA**: RabbitMQ para eventos financeiros assíncronos
 - **Workers**: Processamento assíncrono escalável (2+ instâncias)
 - **Idempotência**: Redis para garantir processamento único de eventos
-- **Segurança**: JWT + JWE, JWKS, KMS, OWASP Top 10
+- **Segurança**: JWT + JWE, JWKS, KMS, OWASP 
 - **Frontend**: Next.js App Router, Redux Toolkit, Tailwind CSS, React Query
 - **Real-time**: WebSocket para notificações em tempo real
 

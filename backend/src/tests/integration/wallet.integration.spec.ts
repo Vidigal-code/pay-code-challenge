@@ -3,6 +3,7 @@ import { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { AppModule } from "../../app.module";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
+import { getTestDatabaseUrl, waitForDatabase } from "../setup/test-helpers";
 
 describe("Wallet Integration Tests (e2e)", () => {
   let app: INestApplication | null = null;
@@ -21,11 +22,7 @@ describe("Wallet Integration Tests (e2e)", () => {
   };
 
   beforeAll(async () => {
-    if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes("db:5432")) {
-      const testDbUrl = process.env.DATABASE_URL?.replace("db:5432", "localhost:5432") || 
-                       "postgresql://postgres:postgres@localhost:5432/paycode?schema=public";
-      process.env.DATABASE_URL = testDbUrl;
-    }
+    process.env.DATABASE_URL = getTestDatabaseUrl();
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -35,17 +32,24 @@ describe("Wallet Integration Tests (e2e)", () => {
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     
     try {
+      const dbReady = await waitForDatabase(prisma, 10);
+      if (!dbReady) {
+        console.warn("Database not available, skipping integration tests");
+        dbAvailable = false;
+        return;
+      }
+      
       await app.init();
       dbAvailable = true;
     } catch (error: any) {
-      if (error?.message?.includes("Can't reach database server")) {
+      if (error?.message?.includes("Can't reach database server") || error?.code === "ECONNREFUSED") {
         console.warn("Database not available, skipping integration tests");
         dbAvailable = false;
         return;
       }
       throw error;
     }
-  });
+  }, 30000);
 
   afterAll(async () => {
     if (app && prisma && dbAvailable) {

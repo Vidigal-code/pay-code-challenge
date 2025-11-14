@@ -20,19 +20,28 @@ export function useAuth() {
     const login = useCallback(async (email: string, password: string) => {
         const { data } = await http.post('/auth/login', { email: email.trim(), password });
         dispatch(setAuthenticated(true));
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('auth-changed'));
+        }
         return data;
     }, [dispatch]);
 
     const signup = useCallback(async (email: string, password: string, name: string) => {
         const { data } = await http.post('/auth/signup', { email: email.trim(), password, name: name.trim() });
         dispatch(setAuthenticated(true));
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('auth-changed'));
+        }
         return data;
     }, [dispatch]);
 
     const logout = useCallback(async () => {
         try { await fetch('/api/logout', { method: 'POST' }); } catch {}
         dispatch(logoutState());
-        try { if (typeof window !== 'undefined') window.location.assign('/login'); } catch {}
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('auth-changed'));
+            window.location.assign('/login');
+        }
     }, [dispatch]);
 
     return { isAuthenticated, login, signup, logout, setAuthenticated: (v: boolean) => dispatch(setAuthenticated(v)) };

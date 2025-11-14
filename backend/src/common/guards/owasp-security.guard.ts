@@ -8,7 +8,7 @@ import { Request } from "express";
 
 /**
  * OWASP API Security Guard
- * Implementa proteções contra vulnerabilidades comuns da OWASP Top 10
+ * Implementa proteções contra vulnerabilidades comuns da OWASP 
  */
 @Injectable()
 export class OWASPSecurityGuard implements CanActivate {

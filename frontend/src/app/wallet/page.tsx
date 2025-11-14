@@ -185,6 +185,13 @@ export default function WalletPage() {
             show({ type: 'error', message: 'ID do destinatário é obrigatório' });
             return;
         }
+        
+        const currentBalance = walletQuery.data?.wallet?.balance || 0;
+        if (currentBalance < amount) {
+            show({ type: 'error', message: 'Saldo insuficiente para completar esta transação' });
+            return;
+        }
+        
         transferMutation.mutate({ receiverId: transferReceiverId.trim(), amount: Number(amount.toFixed(2)), description: transferDescription || undefined });
     };
 

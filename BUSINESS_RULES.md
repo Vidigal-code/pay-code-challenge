@@ -39,7 +39,7 @@ Este documento descreve todas as regras de negócio implementadas no sistema PAY
 - ✅ **JWE para Dados Sensíveis**: CPF, cartão de crédito e transferências criptografados
   - Tokens expiram em 1 hora
   - Usa KMS para gerenciamento de chaves
-- ✅ **OWASP API Security Top 10 (2023)**: Proteções contra todas as vulnerabilidades principais
+- ✅ **OWASP API Security**: Proteções contra todas as vulnerabilidades principais
 - ✅ **Rate Limiting Rigoroso**: 
   - Geral: 30 requisições por minuto
   - Transações financeiras: 10 requisições por minuto
@@ -367,7 +367,7 @@ Transação de reversão: COMPLETED
 - ✅ **JWKS**: Rotação automática de chaves (24 horas)
 - ✅ **KMS**: Gerenciamento seguro de chaves (AWS/GCP ready)
 - ✅ **JWE para Dados Sensíveis**: CPF, cartão, transferências criptografados
-- ✅ **OWASP API Security Top 10**: Proteções contra todas as vulnerabilidades principais
+- ✅ **OWASP API Security**: Proteções contra todas as vulnerabilidades principais
 - ✅ **Rate Limiting**: Proteção contra abuso e ataques
 - ✅ **Validações Rigorosas**: Múltiplas camadas de validação
 - ✅ **Rollback Automático**: Garantia de consistência

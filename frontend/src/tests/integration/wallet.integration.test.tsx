@@ -12,8 +12,16 @@ jest.mock('../../hooks/useToast', () => ({
     show: jest.fn(),
   }),
 }));
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+  }),
+}));
 
 const mockHttp = http as jest.Mocked<typeof http>;
+
+const isDocker = process.env.DOCKER_ENV === 'true' || process.env.CI === 'true';
+const API_URL = isDocker ? 'http://api:4000' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000');
 
 describe('Wallet Integration Tests', () => {
   let queryClient: QueryClient;

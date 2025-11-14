@@ -58,10 +58,20 @@ export default function Providers({
             }
         }
 
-        const interval = setInterval(checkAuth, 2000);
+        const interval = setInterval(() => {
+            if (mounted) checkAuth();
+        }, 2000);
+        
+        const handleAuthChange = () => {
+            if (mounted) checkAuth();
+        };
+        
+        window.addEventListener('auth-changed', handleAuthChange);
+        
         return () => {
             mounted = false;
             clearInterval(interval);
+            window.removeEventListener('auth-changed', handleAuthChange);
         };
     }, [initialAuth]);
 

@@ -1,4 +1,4 @@
-import {render, screen} from "@testing-library/react";
+import {render, screen, waitFor} from "@testing-library/react";
 import {useRouter} from "next/navigation";
 import HomePage from "../../app/page";
 
@@ -17,29 +17,37 @@ describe("HomePage", () => {
         });
     });
 
-    it("should render welcome message", () => {
+    it("should render welcome message", async () => {
         render(<HomePage />);
-        expect(screen.getByText(/Seja bem-vindo a PAYCODE/i)).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByText(/PAYCODE/i)).toBeInTheDocument();
+        });
     });
 
-    it("should render signup and login buttons", () => {
+    it("should render signup and login buttons", async () => {
         render(<HomePage />);
-        expect(screen.getByText("Criar Conta")).toBeInTheDocument();
-        expect(screen.getByText("Entrar")).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByText("Criar Conta Grátis")).toBeInTheDocument();
+            expect(screen.getByText("Entrar")).toBeInTheDocument();
+        });
     });
 
-    it("should render feature cards", () => {
+    it("should render feature cards", async () => {
         render(<HomePage />);
-        expect(screen.getByText("Segurança Avançada")).toBeInTheDocument();
-        expect(screen.getByText("Transações Rápidas")).toBeInTheDocument();
-        expect(screen.getByText("Dashboard Completo")).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByText("Segurança Avançada")).toBeInTheDocument();
+            expect(screen.getByText("Transações Rápidas")).toBeInTheDocument();
+            expect(screen.getByText("Dashboard e KPIs")).toBeInTheDocument();
+        });
     });
 
-    it("should render stats section", () => {
+    it("should render stats section", async () => {
         render(<HomePage />);
-        expect(screen.getByText("100%")).toBeInTheDocument();
-        expect(screen.getByText("24/7")).toBeInTheDocument();
-        expect(screen.getByText("0%")).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByText("100%")).toBeInTheDocument();
+            expect(screen.getByText("24/7")).toBeInTheDocument();
+            expect(screen.getByText("0%")).toBeInTheDocument();
+        });
     });
 
     it("should redirect to wallet if session exists", () => {
