@@ -5,28 +5,16 @@ import Link from "next/link";
 import {useSelector, useDispatch} from "react-redux";
 import {FiMenu, FiX, FiSun, FiMoon, FiCreditCard} from "react-icons/fi";
 import {toggleTheme} from "../store/slices/theme.slice";
-import {setAuthenticated} from "../store/slices/authSlice";
 import {RootState} from "../store";
-import {SESSION_COOKIE} from "../lib/config";
 import NavAuthMenu from "./NavAuthMenu";
-
-function readCookie(name: string): string | undefined {
-    if (typeof document === "undefined") return undefined;
-
-    const match = document.cookie.match(new RegExp("(?:^|; )" +
-        name.replace(/([.$?*|{}()[]\\\/+^])/g, "\\$1") + "=([^;]*)"));
-    return match ? decodeURIComponent(match[1]) : undefined;
-
-}
+import {useAuthStatus} from "../hooks/useAuthStatus";
 
 export default function Navbar({ initialAuth = false }: { initialAuth?: boolean }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
     const theme = useSelector((state: RootState) => state.theme?.theme || "light");
     const dispatch = useDispatch();
-    const reduxAuth = useSelector((state: RootState) => state.auth?.isAuthenticated || false);
-    
-    const [isAuth, setIsAuth] = useState(initialAuth);
+    const { isAuthenticated, invalidateAuth } = useAuthStatus();
 
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -34,45 +22,20 @@ export default function Navbar({ initialAuth = false }: { initialAuth?: boolean 
         }
     }, []);
 
+    // Listen for auth changes and invalidate query
     useEffect(() => {
-        if (!mounted || typeof window === "undefined") return;
-        
-        let mountedFlag = true;
-        
-        const checkAuth = () => {
-            if (!mountedFlag) return;
-            const hasCookie = !!readCookie(SESSION_COOKIE);
-            const authState = hasCookie || reduxAuth;
-            setIsAuth(authState);
-            if (hasCookie !== reduxAuth) {
-                dispatch(setAuthenticated(hasCookie));
-            }
-        };
-
-        checkAuth();
-        
-        const interval = setInterval(checkAuth, 300);
-        
-        const handleStorageChange = () => {
-            if (mountedFlag) checkAuth();
-        };
+        if (typeof window === "undefined") return;
         
         const handleAuthChange = () => {
-            if (mountedFlag) checkAuth();
+            invalidateAuth();
         };
         
-        window.addEventListener('storage', handleStorageChange);
-        window.addEventListener('focus', checkAuth);
         window.addEventListener('auth-changed', handleAuthChange);
         
         return () => {
-            mountedFlag = false;
-            clearInterval(interval);
-            window.removeEventListener('storage', handleStorageChange);
-            window.removeEventListener('focus', checkAuth);
             window.removeEventListener('auth-changed', handleAuthChange);
         };
-    }, [dispatch, reduxAuth, mounted]);
+    }, [invalidateAuth]);
 
     const handleLogout = async () => {
         try {
@@ -80,10 +43,16 @@ export default function Navbar({ initialAuth = false }: { initialAuth?: boolean 
         } catch (error) {
             console.error("Logout error:", error);
         } finally {
-            dispatch(setAuthenticated(false));
+            invalidateAuth();
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new Event('auth-changed'));
+            }
             window.location.href = "/";
         }
     };
+
+    // Use React Query auth status
+    const shouldShowAuthMenu = isAuthenticated || initialAuth;
 
     if (!mounted) {
         return (
@@ -97,7 +66,7 @@ export default function Navbar({ initialAuth = false }: { initialAuth?: boolean 
                             </span>
                         </Link>
                         <div className="hidden md:flex items-center gap-6">
-                            <NavAuthMenu initialAuth={initialAuth} />
+                            <NavAuthMenu initialAuth={initialAuth || isAuthenticated} />
                             <button
                                 onClick={() => dispatch(toggleTheme())}
                                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -131,7 +100,7 @@ export default function Navbar({ initialAuth = false }: { initialAuth?: boolean 
                     </Link>
 
                     <div className="hidden md:flex items-center gap-6">
-                        <NavAuthMenu initialAuth={initialAuth || isAuth} />
+                        <NavAuthMenu initialAuth={initialAuth || isAuthenticated} />
                         <button
                             onClick={() => dispatch(toggleTheme())}
                             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -162,7 +131,7 @@ export default function Navbar({ initialAuth = false }: { initialAuth?: boolean 
                             <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-800">
                                 <div className="flex flex-col gap-4">
                                     <div className="flex flex-col gap-2">
-                                        {(isAuth || reduxAuth || (typeof window !== "undefined" && !!readCookie(SESSION_COOKIE))) ? (
+                                        {shouldShowAuthMenu ? (
                                             <>
                                                 <Link
                                                     href="/dashboard"

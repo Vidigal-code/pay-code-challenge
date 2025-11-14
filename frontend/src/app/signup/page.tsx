@@ -40,14 +40,21 @@ export default function SignupPage() {
                                 const response = await signupAction(email.trim(), password, name.trim());
                                 setAuthenticated(true);
                                 if (typeof window !== 'undefined') {
+                                    // Dispatch multiple times to ensure navbar updates
                                     window.dispatchEvent(new Event('auth-changed'));
+                                    setTimeout(() => {
+                                        window.dispatchEvent(new Event('auth-changed'));
+                                    }, 50);
+                                    setTimeout(() => {
+                                        window.dispatchEvent(new Event('auth-changed'));
+                                    }, 200);
                                 }
                                 const code = response?.code || 'USER_CREATED';
                                 const message = getSuccessMessage(code);
                                 show({type: "success", message});
                                 setTimeout(() => {
                                     router.push("/dashboard");
-                                }, 100);
+                                }, 300);
                             } catch (err) {
                                 const m = getErrorMessage(err, "Falha ao criar conta");
                                 show({type: "error", message: m});

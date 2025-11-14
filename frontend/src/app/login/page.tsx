@@ -39,12 +39,19 @@ export default function LoginPage() {
                                 const response = await loginAction(email.trim(), password);
                                 setAuthenticated(true);
                                 if (typeof window !== 'undefined') {
+                                    // Dispatch multiple times to ensure navbar updates
                                     window.dispatchEvent(new Event('auth-changed'));
+                                    setTimeout(() => {
+                                        window.dispatchEvent(new Event('auth-changed'));
+                                    }, 50);
+                                    setTimeout(() => {
+                                        window.dispatchEvent(new Event('auth-changed'));
+                                    }, 200);
                                 }
                                 show({type: "success", message: "Login realizado com sucesso"});
                                 setTimeout(() => {
                                     router.push("/dashboard");
-                                }, 100);
+                                }, 300);
                             } catch (err) {
                                 const m = getErrorMessage(err, "Falha no login");
                                 show({type: "error", message: m});

@@ -1,90 +1,35 @@
 "use client";
 
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../hooks/useAuth';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../store';
-import { SESSION_COOKIE } from '../lib/config';
+import { useAuthStatus } from '../hooks/useAuthStatus';
 import { FiLayout, FiCreditCard, FiUser, FiLogOut, FiLogIn, FiUserPlus } from 'react-icons/fi';
 
-function readCookie(name: string): string | undefined {
-    if (typeof document === "undefined") return undefined;
-
-    const match = document.cookie.match(new RegExp("(?:^|; )" +
-        name.replace(/([.$?*|{}()[]\\\/+^])/g, "\\$1") + "=([^;]*)"));
-
-    return match ? decodeURIComponent(match[1]) : undefined;
-}
-
 export default function NavAuthMenu({ initialAuth }: { initialAuth: boolean }) {
-  const storeAuth = useSelector((s: RootState) => s.auth.isAuthenticated);
-  const [isAuth, setIsAuth] = useState(initialAuth);
-  const [mounted, setMounted] = useState(false);
+  const { isAuthenticated, invalidateAuth } = useAuthStatus();
   const { logout } = useAuth();
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setMounted(true);
-    }
-  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     
-    const checkAuth = () => {
-      const hasCookie = !!readCookie(SESSION_COOKIE);
-      const authState = hasCookie || storeAuth || initialAuth;
-      setIsAuth(authState);
-    };
-
-    checkAuth();
-    
-    if (!mounted) {
-      const handleAuthChange = () => {
-        checkAuth();
-      };
-      window.addEventListener('auth-changed', handleAuthChange);
-      return () => {
-        window.removeEventListener('auth-changed', handleAuthChange);
-      };
-    }
-    
-    let mountedFlag = true;
-    
-    const interval = setInterval(() => {
-      if (mountedFlag) checkAuth();
-    }, 300);
-    
     const handleAuthChange = () => {
-      if (mountedFlag) {
-        checkAuth();
-      }
+      invalidateAuth();
     };
     
     window.addEventListener('auth-changed', handleAuthChange);
-    window.addEventListener('focus', checkAuth);
     
     return () => {
-      mountedFlag = false;
-      clearInterval(interval);
       window.removeEventListener('auth-changed', handleAuthChange);
-      window.removeEventListener('focus', checkAuth);
     };
-  }, [storeAuth, mounted, initialAuth]);
-
-  useEffect(() => {
-    if (storeAuth) {
-      setIsAuth(true);
-    }
-  }, [storeAuth]);
+  }, [invalidateAuth]);
 
   const handleLogout = async () => {
     await logout();
-    setIsAuth(false);
+    invalidateAuth();
   };
 
-  const shouldShowAuth = storeAuth || isAuth || (typeof window !== "undefined" && !!readCookie(SESSION_COOKIE));
+  const shouldShowAuth = isAuthenticated || initialAuth;
 
   return (
     <div className="flex items-center gap-4">
