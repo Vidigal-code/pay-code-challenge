@@ -239,8 +239,9 @@ export class TransferUseCase {
             status: TransactionStatus.FAILED,
           });
         }
-      } catch (rollbackError) {
-        this.logger.error("Rollback failed:", rollbackError);
+      } catch (rollbackError: any) {
+        this.logger.error(`Rollback failed for transfer ${transaction.id}:`, rollbackError?.message || rollbackError);
+        this.logger.error(`Rollback error details:`, rollbackError);
       }
 
       await this.transactionRepository.update({

@@ -17,6 +17,8 @@ const config: Config = {
     "^@interfaces/(.*)$": "<rootDir>/src/interfaces/$1",
     "^@common/(.*)$": "<rootDir>/src/common/$1",
     "^@config/(.*)$": "<rootDir>/src/config/$1",
+    "^@modules/(.*)$": "<rootDir>/src/modules/$1",
+    "^@workers/(.*)$": "<rootDir>/src/workers/$1",
   },
 };
 

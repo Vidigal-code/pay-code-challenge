@@ -304,14 +304,14 @@ export class WalletController {
         let parsedPage: number | undefined = undefined;
         let parsedPageSize: number | undefined = undefined;
         
-        if (page) {
+        if (page && page.trim() !== '') {
             const pageNum = parseInt(page, 10);
             if (!isNaN(pageNum) && pageNum > 0) {
                 parsedPage = pageNum;
             }
         }
         
-        if (pageSize) {
+        if (pageSize && pageSize.trim() !== '') {
             const pageSizeNum = parseInt(pageSize, 10);
             if (!isNaN(pageSizeNum) && pageSizeNum > 0) {
                 parsedPageSize = Math.min(pageSizeNum, 100);
@@ -322,8 +322,8 @@ export class WalletController {
             userId,
             page: parsedPage,
             pageSize: parsedPageSize,
-            type,
-            status,
+            type: type?.trim() || undefined,
+            status: status?.trim() || undefined,
         });
     }
 

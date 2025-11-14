@@ -13,13 +13,21 @@ export class WalletPrismaRepository implements WalletRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: CreateWalletInput): Promise<Wallet> {
-    const wallet = await this.prisma.wallet.create({
-      data: {
-        userId: data.userId,
-        balance: data.balance ?? 0,
-      },
-    });
-    return this.toDomain(wallet);
+    try {
+      const wallet = await this.prisma.wallet.create({
+        data: {
+          userId: data.userId,
+          balance: data.balance ?? 0,
+        },
+      });
+      return this.toDomain(wallet);
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        throw new Error(`Wallet already exists for user ${data.userId}`);
+      }
+      const errorMessage = error?.message || "Database error";
+      throw new Error(`Failed to create wallet for user ${data.userId}: ${errorMessage}`);
+    }
   }
 
   async findByUserId(userId: string): Promise<Wallet | null> {
@@ -50,9 +58,10 @@ export class WalletPrismaRepository implements WalletRepository {
       return this.toDomain(wallet);
     } catch (error: any) {
       if (error.code === 'P2025') {
-        throw new Error("Wallet not found");
+        throw new Error(`Wallet not found: ${data.id}`);
       }
-      throw error;
+      const errorMessage = error?.message || "Database error";
+      throw new Error(`Failed to update wallet ${data.id}: ${errorMessage}`);
     }
   }
 

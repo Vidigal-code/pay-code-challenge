@@ -26,10 +26,11 @@ export default async function RootLayout({children}: {children: React.ReactNode}
                             (function() {
                                 try {
                                     const theme = localStorage.getItem('theme');
+                                    const root = document.documentElement;
                                     if (theme === 'dark') {
-                                        document.documentElement.classList.add('dark');
+                                        root.classList.add('dark');
                                     } else {
-                                        document.documentElement.classList.remove('dark');
+                                        root.classList.remove('dark');
                                     }
                                 } catch (e) {}
                             })();
@@ -37,11 +38,11 @@ export default async function RootLayout({children}: {children: React.ReactNode}
                     }}
                 />
             </head>
-            <body className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+            <body className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors" suppressHydrationWarning>
                 <Providers initialAuth={initialAuth}>
                     <ToastProvider>
                         <Navbar />
-                        <main>{children}</main>
+                        <main suppressHydrationWarning>{children}</main>
                         <ToastContainer />
                     </ToastProvider>
                 </Providers>

@@ -77,9 +77,20 @@ export default function WalletPage() {
         },
     });
 
+    const profileQuery = useQuery<{ id: string; name: string; email: string }>({
+        queryKey: ['profile'],
+        queryFn: async () => {
+            const { data } = await http.get('/auth/profile');
+            return data;
+        },
+    });
+
     const depositMutation = useMutation({
         mutationFn: async ({ amount, description }: { amount: number; description?: string }) => {
-            const { data } = await http.post('/wallet/deposit', { amount, description });
+            const { data } = await http.post('/wallet/deposit', { 
+                amount: Number(amount), 
+                description: description || undefined 
+            });
             return data;
         },
         onSuccess: (data: any) => {
@@ -100,7 +111,11 @@ export default function WalletPage() {
 
     const transferMutation = useMutation({
         mutationFn: async ({ receiverId, amount, description }: { receiverId: string; amount: number; description?: string }) => {
-            const { data } = await http.post('/wallet/transfer', { receiverId, amount, description });
+            const { data } = await http.post('/wallet/transfer', { 
+                receiverId, 
+                amount: Number(amount), 
+                description: description || undefined 
+            });
             return data;
         },
         onSuccess: (data: any) => {
@@ -145,10 +160,14 @@ export default function WalletPage() {
         e.preventDefault();
         const amount = parseFloat(depositAmount);
         if (isNaN(amount) || amount <= 0) {
-            show({ type: 'error', message: 'Valor inválido' });
+            show({ type: 'error', message: 'Valor inválido. O valor deve ser maior que zero.' });
             return;
         }
-        depositMutation.mutate({ amount, description: depositDescription || undefined });
+        if (amount < 0.01) {
+            show({ type: 'error', message: 'O valor mínimo para depósito é R$ 0,01' });
+            return;
+        }
+        depositMutation.mutate({ amount: Number(amount.toFixed(2)), description: depositDescription || undefined });
     };
 
     const handleTransfer = (e: React.FormEvent) => {
@@ -158,11 +177,15 @@ export default function WalletPage() {
             show({ type: 'error', message: 'Valor inválido' });
             return;
         }
+        if (amount < 0.01) {
+            show({ type: 'error', message: 'O valor mínimo para transferência é R$ 0,01' });
+            return;
+        }
         if (!transferReceiverId.trim()) {
             show({ type: 'error', message: 'ID do destinatário é obrigatório' });
             return;
         }
-        transferMutation.mutate({ receiverId: transferReceiverId, amount, description: transferDescription || undefined });
+        transferMutation.mutate({ receiverId: transferReceiverId.trim(), amount: Number(amount.toFixed(2)), description: transferDescription || undefined });
     };
 
     const handleReverseClick = (transactionId: string) => {
@@ -317,8 +340,9 @@ export default function WalletPage() {
                         <h3 className="text-xl font-semibold mb-4">Depositar Dinheiro</h3>
                         <form onSubmit={handleDeposit} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium mb-1">Valor</label>
+                                <label htmlFor="deposit-amount" className="block text-sm font-medium mb-1">Valor</label>
                                 <input
+                                    id="deposit-amount"
                                     type="number"
                                     step="0.01"
                                     min="0.01"
@@ -329,8 +353,9 @@ export default function WalletPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">Descrição (opcional)</label>
+                                <label htmlFor="deposit-description" className="block text-sm font-medium mb-1">Descrição (opcional)</label>
                                 <input
+                                    id="deposit-description"
                                     type="text"
                                     value={depositDescription}
                                     onChange={(e) => setDepositDescription(e.target.value)}
@@ -364,8 +389,9 @@ export default function WalletPage() {
                         <h3 className="text-xl font-semibold mb-4">Transferir Dinheiro</h3>
                         <form onSubmit={handleTransfer} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium mb-1">ID do Destinatário</label>
+                                <label htmlFor="transfer-receiver-id" className="block text-sm font-medium mb-1">ID do Destinatário</label>
                                 <input
+                                    id="transfer-receiver-id"
                                     type="text"
                                     value={transferReceiverId}
                                     onChange={(e) => setTransferReceiverId(e.target.value)}
@@ -374,8 +400,9 @@ export default function WalletPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">Valor</label>
+                                <label htmlFor="transfer-amount" className="block text-sm font-medium mb-1">Valor</label>
                                 <input
+                                    id="transfer-amount"
                                     type="number"
                                     step="0.01"
                                     min="0.01"
@@ -386,8 +413,9 @@ export default function WalletPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">Descrição (opcional)</label>
+                                <label htmlFor="transfer-description" className="block text-sm font-medium mb-1">Descrição (opcional)</label>
                                 <input
+                                    id="transfer-description"
                                     type="text"
                                     value={transferDescription}
                                     onChange={(e) => setTransferDescription(e.target.value)}
@@ -424,8 +452,9 @@ export default function WalletPage() {
                         </p>
                         <form onSubmit={handleReverse} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium mb-1">Motivo (opcional)</label>
+                                <label htmlFor="reverse-reason" className="block text-sm font-medium mb-1">Motivo (opcional)</label>
                                 <textarea
+                                    id="reverse-reason"
                                     value={reverseReason}
                                     onChange={(e) => setReverseReason(e.target.value)}
                                     className="border px-3 py-2 w-full rounded"

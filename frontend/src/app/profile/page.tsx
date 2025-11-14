@@ -8,7 +8,7 @@ import {getErrorMessage, getSuccessMessage} from "../../lib/error";
 import {useToast} from "../../hooks/useToast";
 import {useAuth} from "../../hooks/useAuth";
 import Skeleton from "../../components/Skeleton";
-import {FiUser, FiMail, FiLock, FiTrash2, FiSave} from "react-icons/fi";
+import {FiUser, FiMail, FiLock, FiTrash2, FiSave, FiCopy, FiCheck} from "react-icons/fi";
 
 interface Profile {
     id: string;
@@ -26,6 +26,7 @@ export default function ProfilePage() {
     const [newPassword, setNewPassword] = useState("");
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState("");
+    const [copied, setCopied] = useState(false);
 
     const profileQuery = useQuery<Profile>({
         queryKey: ["profile"],
@@ -107,6 +108,18 @@ export default function ProfilePage() {
         deleteAccountMutation.mutate();
     };
 
+    const handleCopyId = async () => {
+        if (!profileQuery.data?.id) return;
+        try {
+            await navigator.clipboard.writeText(profileQuery.data.id);
+            setCopied(true);
+            show({type: "success", message: "ID copiado para a área de transferência!"});
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            show({type: "error", message: "Falha ao copiar ID"});
+        }
+    };
+
     if (profileQuery.isLoading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6">
@@ -125,6 +138,39 @@ export default function ProfilePage() {
                 </h1>
 
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 space-y-6">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <FiUser />
+                            ID do Usuário
+                        </label>
+                        <div className="flex items-center gap-2">
+                            <code className="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-mono text-gray-900 dark:text-white break-all">
+                                {profileQuery.data?.id || 'Carregando...'}
+                            </code>
+                            <button
+                                type="button"
+                                onClick={handleCopyId}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                title="Copiar ID"
+                            >
+                                {copied ? (
+                                    <>
+                                        <FiCheck className="text-lg" />
+                                        Copiado!
+                                    </>
+                                ) : (
+                                    <>
+                                        <FiCopy className="text-lg" />
+                                        Copiar
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                        <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                            Compartilhe este ID para receber transferências
+                        </p>
+                    </div>
+
                     <form onSubmit={handleUpdateProfile} className="space-y-6">
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

@@ -19,7 +19,11 @@ export class OWASPSecurityGuard implements CanActivate {
     this.validateObjectLevelAuthorization(request);
 
     // OWASP API2:2023 - Broken Authentication
-    this.validateAuthentication(request);
+    // Note: Authentication is handled by JwtAuthGuard on protected routes
+    // This guard only validates additional security checks for authenticated users
+    if ((request as any).user) {
+      this.validateAuthenticatedUser(request);
+    }
 
     // OWASP API3:2023 - Broken Object Property Level Authorization
     this.validatePropertyLevelAuthorization(request);
@@ -59,7 +63,12 @@ export class OWASPSecurityGuard implements CanActivate {
     }
   }
 
-  private validateAuthentication(request: Request) {
+  private validateAuthenticatedUser(request: Request) {
+    const user = (request as any).user;
+    if (!user) {
+      return;
+    }
+
     const sensitivePaths = [
       "/wallet/deposit",
       "/wallet/transfer",
@@ -69,8 +78,8 @@ export class OWASPSecurityGuard implements CanActivate {
       request.path.includes(path),
     );
 
-    if (isSensitive && !(request as any).user) {
-      throw new BadRequestException("OWASP-API2: Authentication required");
+    if (isSensitive && !user.sub && !user.id) {
+      throw new BadRequestException("OWASP-API2: Invalid authentication token");
     }
   }
 

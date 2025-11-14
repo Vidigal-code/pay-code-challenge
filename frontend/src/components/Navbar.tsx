@@ -17,22 +17,30 @@ function readCookie(name: string): string | undefined {
 
 export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const theme = useSelector((state: RootState) => state.theme.theme);
+    const theme = useSelector((state: RootState) => state.theme?.theme || "light");
     const dispatch = useDispatch();
-    const isAuth = useSelector((state: RootState) => state.auth.isAuthenticated);
+    const reduxAuth = useSelector((state: RootState) => state.auth?.isAuthenticated || false);
+    
+    const [isAuth, setIsAuth] = useState(() => {
+        if (typeof window === "undefined") return false;
+        return !!readCookie(SESSION_COOKIE);
+    });
 
     useEffect(() => {
         if (typeof window === "undefined") return;
         
         const checkAuth = () => {
             const hasCookie = !!readCookie(SESSION_COOKIE);
-            dispatch(setAuthenticated(hasCookie));
+            setIsAuth(hasCookie);
+            if (hasCookie !== reduxAuth) {
+                dispatch(setAuthenticated(hasCookie));
+            }
         };
 
         checkAuth();
-        const interval = setInterval(checkAuth, 2000);
+        const interval = setInterval(checkAuth, 500);
         return () => clearInterval(interval);
-    }, [dispatch]);
+    }, [dispatch, reduxAuth]);
 
     const handleLogout = async () => {
         try {

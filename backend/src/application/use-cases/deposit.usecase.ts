@@ -125,19 +125,26 @@ export class DepositUseCase {
         wallet,
       };
     } catch (error) {
+      this.logger.error(`Deposit failed for user ${input.userId}, amount ${input.amount}:`, error);
       try {
         await this.walletRepository.update({
           id: wallet.id,
           balance: previousBalance,
         });
-      } catch (rollbackError) {
-        this.logger.error("Rollback failed:", rollbackError);
+        this.logger.log(`Rollback successful for wallet ${wallet.id}`);
+      } catch (rollbackError: any) {
+        this.logger.error(`Rollback failed for wallet ${wallet.id}:`, rollbackError?.message || rollbackError);
+        this.logger.error(`Rollback error details:`, rollbackError);
       }
 
-      await this.transactionRepository.update({
-        id: transaction.id,
-        status: TransactionStatus.FAILED,
-      });
+      try {
+        await this.transactionRepository.update({
+          id: transaction.id,
+          status: TransactionStatus.FAILED,
+        });
+      } catch (updateError: any) {
+        this.logger.error(`Failed to update transaction ${transaction.id} status to FAILED:`, updateError?.message || updateError);
+      }
       throw error;
     }
   }

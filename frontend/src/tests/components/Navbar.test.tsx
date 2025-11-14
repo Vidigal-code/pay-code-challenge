@@ -3,15 +3,20 @@ import {Provider} from "react-redux";
 import {configureStore} from "@reduxjs/toolkit";
 import Navbar from "../../components/Navbar";
 import themeReducer from "../../store/slices/theme.slice";
+import authReducer from "../../store/slices/authSlice";
 
-const createMockStore = (initialTheme: "light" | "dark" = "light") => {
+const createMockStore = (initialTheme: "light" | "dark" = "light", isAuthenticated: boolean = false) => {
     return configureStore({
         reducer: {
             theme: themeReducer,
+            auth: authReducer,
         },
         preloadedState: {
             theme: {
                 theme: initialTheme,
+            },
+            auth: {
+                isAuthenticated,
             },
         },
     });
@@ -36,7 +41,7 @@ describe("Navbar", () => {
             </Provider>,
         );
 
-        const themeButton = screen.getByRole("button", {name: /toggle theme/i});
+        const themeButton = screen.getByRole("button", {name: /Toggle theme/i});
         expect(themeButton).toBeInTheDocument();
 
         fireEvent.click(themeButton);
@@ -44,15 +49,15 @@ describe("Navbar", () => {
     });
 
     it("should show login and signup links when not authenticated", () => {
-        const store = createMockStore();
+        const store = createMockStore("light", false);
         render(
             <Provider store={store}>
                 <Navbar />
             </Provider>,
         );
 
-        expect(screen.getByText("Login")).toBeInTheDocument();
-        expect(screen.getByText("Sign Up")).toBeInTheDocument();
+        expect(screen.getByText("Entrar")).toBeInTheDocument();
+        expect(screen.getByText("Criar Conta")).toBeInTheDocument();
     });
 
     it("should be responsive with hamburger menu on mobile", () => {
@@ -67,7 +72,8 @@ describe("Navbar", () => {
         expect(hamburgerButton).toBeInTheDocument();
 
         fireEvent.click(hamburgerButton);
-        expect(screen.getByText("Login")).toBeInTheDocument();
+        const entrarLinks = screen.getAllByText("Entrar");
+        expect(entrarLinks.length).toBeGreaterThan(0);
     });
 });
 

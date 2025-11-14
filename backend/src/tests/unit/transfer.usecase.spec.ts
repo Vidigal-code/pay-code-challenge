@@ -243,7 +243,6 @@ describe("TransferUseCase", () => {
             updatedAt: new Date(),
         } as any);
 
-        // Simula falha na primeira atualização (do sender wallet)
         walletRepository.update
             .mockRejectedValueOnce(new Error("Database error"))
             .mockResolvedValueOnce({
@@ -263,10 +262,8 @@ describe("TransferUseCase", () => {
 
         await expect(useCase.execute({senderId, receiverId, amount})).rejects.toThrow();
 
-        // Verifica rollback - verifica que ambas as chamadas de rollback foram feitas
         const updateCalls = walletRepository.update.mock.calls;
-        const rollbackCalls = updateCalls.slice(1); // Pula a primeira chamada que falhou
-        
+        const rollbackCalls = updateCalls.slice(1); 
         expect(rollbackCalls.length).toBeGreaterThanOrEqual(2);
         expect(rollbackCalls.some(call => 
             call[0].id === "wallet1" && call[0].balance === senderPreviousBalance

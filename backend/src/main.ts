@@ -4,7 +4,7 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import {swaggerSetup} from "./swagger";
-import {ValidationPipe} from "@nestjs/common";
+import {HttpException, ValidationPipe} from "@nestjs/common";
 import pinoHttp from "pino-http";
 
 async function bootstrap() {
@@ -46,9 +46,24 @@ async function bootstrap() {
     );
     app.useGlobalPipes(new ValidationPipe({
         whitelist: true,
+        forbidNonWhitelisted: false,
         transform: true,
         transformOptions: {
             enableImplicitConversion: true,
+        },
+        exceptionFactory: (errors) => {
+            const messages = errors.map((error) => {
+                const constraints = error.constraints || {};
+                return Object.values(constraints)[0] || `${error.property} is invalid`;
+            });
+            return new HttpException(
+                {
+                    message: messages,
+                    error: "Bad Request",
+                    statusCode: 400,
+                },
+                400,
+            );
         },
     }));
 

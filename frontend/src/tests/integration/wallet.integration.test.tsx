@@ -207,7 +207,8 @@ describe('Wallet Integration Tests', () => {
     const amountInput = screen.getByLabelText(/Valor/i);
     fireEvent.change(amountInput, { target: { value: '25' } });
 
-    const submitButton = screen.getByRole('button', { name: /Transferir/i });
+    const submitButtons = screen.getAllByRole('button', { name: /Transferir/i });
+    const submitButton = submitButtons.find(btn => btn.type === 'submit') || submitButtons[0];
     fireEvent.click(submitButton);
 
     await waitFor(() => {

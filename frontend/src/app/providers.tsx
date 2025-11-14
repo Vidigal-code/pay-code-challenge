@@ -26,7 +26,10 @@ export default function Providers({
     useEffect(() => {
         if (typeof window === "undefined") return;
         
+        let mounted = true;
+        
         const checkAuth = () => {
+            if (!mounted) return;
             const hasCookie = !!readCookie(SESSION_COOKIE);
             const isAuth = initialAuth || hasCookie;
             store.dispatch(setAuthenticated(isAuth));
@@ -37,14 +40,14 @@ export default function Providers({
         const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
         const root = document.documentElement;
         
-        if (savedTheme) {
+        if (savedTheme && mounted) {
             store.dispatch(setTheme(savedTheme));
             if (savedTheme === "dark") {
                 root.classList.add("dark");
             } else {
                 root.classList.remove("dark");
             }
-        } else {
+        } else if (mounted) {
             const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
             const theme = prefersDark ? "dark" : "light";
             store.dispatch(setTheme(theme));
@@ -56,7 +59,10 @@ export default function Providers({
         }
 
         const interval = setInterval(checkAuth, 2000);
-        return () => clearInterval(interval);
+        return () => {
+            mounted = false;
+            clearInterval(interval);
+        };
     }, [initialAuth]);
 
     return (
