@@ -1,11 +1,19 @@
 "use client";
 
-import {useState} from "react";
+import {useState, useEffect} from "react";
 import Link from "next/link";
 import {useSelector, useDispatch} from "react-redux";
 import {FiMenu, FiX, FiSun, FiMoon, FiCreditCard, FiLogOut, FiUser, FiLayout} from "react-icons/fi";
 import {toggleTheme} from "../store/slices/theme.slice";
+import {setAuthenticated} from "../store/slices/authSlice";
 import {RootState} from "../store";
+import {SESSION_COOKIE} from "../lib/config";
+
+function readCookie(name: string): string | undefined {
+    if (typeof document === "undefined") return undefined;
+    const match = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/([.$?*|{}()[]\\\/+^])/g, "\\$1") + "=([^;]*)"));
+    return match ? decodeURIComponent(match[1]) : undefined;
+}
 
 export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -13,12 +21,27 @@ export default function Navbar() {
     const dispatch = useDispatch();
     const isAuth = useSelector((state: RootState) => state.auth.isAuthenticated);
 
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        
+        const checkAuth = () => {
+            const hasCookie = !!readCookie(SESSION_COOKIE);
+            dispatch(setAuthenticated(hasCookie));
+        };
+
+        checkAuth();
+        const interval = setInterval(checkAuth, 2000);
+        return () => clearInterval(interval);
+    }, [dispatch]);
+
     const handleLogout = async () => {
         try {
-            await fetch("/api/logout", {method: "POST"});
-            window.location.href = "/";
+            await fetch("/api/logout", {method: "POST", credentials: "include"});
         } catch (error) {
             console.error("Logout error:", error);
+        } finally {
+            dispatch(setAuthenticated(false));
+            window.location.href = "/";
         }
     };
 

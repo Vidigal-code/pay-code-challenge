@@ -6,6 +6,13 @@ import {store} from "../store";
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 import {setAuthenticated} from "../store/slices/authSlice";
 import {setTheme} from "../store/slices/theme.slice";
+import {SESSION_COOKIE} from "../lib/config";
+
+function readCookie(name: string): string | undefined {
+    if (typeof document === "undefined") return undefined;
+    const match = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/([.$?*|{}()[]\\\/+^])/g, "\\$1") + "=([^;]*)"));
+    return match ? decodeURIComponent(match[1]) : undefined;
+}
 
 export default function Providers({
     children,
@@ -17,18 +24,39 @@ export default function Providers({
     const queryClient = useMemo(() => new QueryClient(), []);
 
     useEffect(() => {
-        store.dispatch(setAuthenticated(Boolean(initialAuth)));
+        if (typeof window === "undefined") return;
+        
+        const checkAuth = () => {
+            const hasCookie = !!readCookie(SESSION_COOKIE);
+            const isAuth = initialAuth || hasCookie;
+            store.dispatch(setAuthenticated(isAuth));
+        };
+
+        checkAuth();
         
         const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
+        const root = document.documentElement;
+        
         if (savedTheme) {
             store.dispatch(setTheme(savedTheme));
-            document.documentElement.classList.toggle("dark", savedTheme === "dark");
+            if (savedTheme === "dark") {
+                root.classList.add("dark");
+            } else {
+                root.classList.remove("dark");
+            }
         } else {
             const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
             const theme = prefersDark ? "dark" : "light";
             store.dispatch(setTheme(theme));
-            document.documentElement.classList.toggle("dark", theme === "dark");
+            if (theme === "dark") {
+                root.classList.add("dark");
+            } else {
+                root.classList.remove("dark");
+            }
         }
+
+        const interval = setInterval(checkAuth, 2000);
+        return () => clearInterval(interval);
     }, [initialAuth]);
 
     return (

@@ -44,6 +44,9 @@ export default function WalletPage() {
     const [transferDescription, setTransferDescription] = useState('');
     const [showDepositModal, setShowDepositModal] = useState(false);
     const [showTransferModal, setShowTransferModal] = useState(false);
+    const [showReverseModal, setShowReverseModal] = useState(false);
+    const [reverseReason, setReverseReason] = useState('');
+    const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
 
     const walletQuery = useQuery<{ wallet: Wallet | null }>({
         queryKey: ['wallet'],
@@ -91,7 +94,7 @@ export default function WalletPage() {
             kpisQuery.refetch();
         },
         onError: (err: any) => {
-            show({ type: 'error', message: getErrorMessage(err, 'Failed to deposit') });
+            show({ type: 'error', message: getErrorMessage(err, 'Falha ao depositar') });
         },
     });
 
@@ -113,7 +116,28 @@ export default function WalletPage() {
             kpisQuery.refetch();
         },
         onError: (err: any) => {
-            show({ type: 'error', message: getErrorMessage(err, 'Failed to transfer') });
+            show({ type: 'error', message: getErrorMessage(err, 'Falha ao transferir') });
+        },
+    });
+
+    const reverseMutation = useMutation({
+        mutationFn: async ({ transactionId, reason }: { transactionId: string; reason?: string }) => {
+            const { data } = await http.post(`/wallet/transactions/${transactionId}/reverse`, { reason });
+            return data;
+        },
+        onSuccess: (data: any) => {
+            const code = data?.code || 'TRANSACTION_REVERSED';
+            const message = getSuccessMessage(code);
+            show({ type: 'success', message });
+            setShowReverseModal(false);
+            setReverseReason('');
+            setSelectedTransactionId(null);
+            walletQuery.refetch();
+            transactionsQuery.refetch();
+            kpisQuery.refetch();
+        },
+        onError: (err: any) => {
+            show({ type: 'error', message: getErrorMessage(err, 'Falha ao reverter transação') });
         },
     });
 
@@ -121,7 +145,7 @@ export default function WalletPage() {
         e.preventDefault();
         const amount = parseFloat(depositAmount);
         if (isNaN(amount) || amount <= 0) {
-            show({ type: 'error', message: 'Invalid amount' });
+            show({ type: 'error', message: 'Valor inválido' });
             return;
         }
         depositMutation.mutate({ amount, description: depositDescription || undefined });
@@ -131,23 +155,45 @@ export default function WalletPage() {
         e.preventDefault();
         const amount = parseFloat(transferAmount);
         if (isNaN(amount) || amount <= 0) {
-            show({ type: 'error', message: 'Invalid amount' });
+            show({ type: 'error', message: 'Valor inválido' });
             return;
         }
         if (!transferReceiverId.trim()) {
-            show({ type: 'error', message: 'Receiver ID is required' });
+            show({ type: 'error', message: 'ID do destinatário é obrigatório' });
             return;
         }
         transferMutation.mutate({ receiverId: transferReceiverId, amount, description: transferDescription || undefined });
     };
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    const handleReverseClick = (transactionId: string) => {
+        setSelectedTransactionId(transactionId);
+        setShowReverseModal(true);
+    };
+
+    const handleReverse = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedTransactionId) return;
+        reverseMutation.mutate({ 
+            transactionId: selectedTransactionId, 
+            reason: reverseReason || undefined 
+        });
+    };
+
+    const canReverseTransaction = (tx: Transaction) => {
+        return tx.status === 'COMPLETED' && 
+               (tx.type === 'DEPOSIT' || tx.type === 'TRANSFER');
+    };
+
+    const formatCurrency = (value: number | null | undefined) => {
+        if (value === null || value === undefined || isNaN(value)) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(0);
+        }
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value));
     };
 
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">
-            <h1 className="text-3xl font-bold">PAYCODE Wallet</h1>
+            <h1 className="text-3xl font-bold">Carteira PAYCODE</h1>
 
             {kpisQuery.isLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -156,35 +202,35 @@ export default function WalletPage() {
             ) : kpisQuery.data && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-                        <h3 className="text-sm font-medium text-blue-600 mb-2">Total Balance</h3>
+                        <h3 className="text-sm font-medium text-blue-600 mb-2">Saldo Total</h3>
                         <p className="text-2xl font-bold text-blue-900">{formatCurrency(kpisQuery.data.kpis.totalBalance)}</p>
                     </div>
                     <div className="bg-green-50 p-6 rounded-lg border border-green-200">
-                        <h3 className="text-sm font-medium text-green-600 mb-2">Total Deposits</h3>
+                        <h3 className="text-sm font-medium text-green-600 mb-2">Total de Depósitos</h3>
                         <p className="text-2xl font-bold text-green-900">{formatCurrency(kpisQuery.data.kpis.totalDeposits)}</p>
                     </div>
                     <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
-                        <h3 className="text-sm font-medium text-purple-600 mb-2">Total Transfers</h3>
+                        <h3 className="text-sm font-medium text-purple-600 mb-2">Total de Transferências</h3>
                         <p className="text-2xl font-bold text-purple-900">{formatCurrency(kpisQuery.data.kpis.totalTransfers)}</p>
                     </div>
                     <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-200">
-                        <h3 className="text-sm font-medium text-yellow-600 mb-2">Total Received</h3>
+                        <h3 className="text-sm font-medium text-yellow-600 mb-2">Total Recebido</h3>
                         <p className="text-2xl font-bold text-yellow-900">{formatCurrency(kpisQuery.data.kpis.totalReceived)}</p>
                     </div>
                     <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                        <h3 className="text-sm font-medium text-gray-600 mb-2">Total Transactions</h3>
+                        <h3 className="text-sm font-medium text-gray-600 mb-2">Total de Transações</h3>
                         <p className="text-2xl font-bold text-gray-900">{kpisQuery.data.kpis.totalTransactions}</p>
                     </div>
                     <div className="bg-green-50 p-6 rounded-lg border border-green-200">
-                        <h3 className="text-sm font-medium text-green-600 mb-2">Completed</h3>
+                        <h3 className="text-sm font-medium text-green-600 mb-2">Completadas</h3>
                         <p className="text-2xl font-bold text-green-900">{kpisQuery.data.kpis.completedTransactions}</p>
                     </div>
                     <div className="bg-red-50 p-6 rounded-lg border border-red-200">
-                        <h3 className="text-sm font-medium text-red-600 mb-2">Failed</h3>
+                        <h3 className="text-sm font-medium text-red-600 mb-2">Falhadas</h3>
                         <p className="text-2xl font-bold text-red-900">{kpisQuery.data.kpis.failedTransactions}</p>
                     </div>
                     <div className="bg-orange-50 p-6 rounded-lg border border-orange-200">
-                        <h3 className="text-sm font-medium text-orange-600 mb-2">Reversed</h3>
+                        <h3 className="text-sm font-medium text-orange-600 mb-2">Revertidas</h3>
                         <p className="text-2xl font-bold text-orange-900">{kpisQuery.data.kpis.reversedTransactions}</p>
                     </div>
                 </div>
@@ -192,11 +238,13 @@ export default function WalletPage() {
 
             {walletQuery.isLoading ? (
                 <Skeleton className="h-24" />
-            ) : walletQuery.data && (
+            ) : (
                 <div className="bg-white p-6 rounded-lg border shadow-sm">
-                    <h2 className="text-xl font-semibold mb-4">My Wallet</h2>
+                    <h2 className="text-xl font-semibold mb-4">Minha Carteira</h2>
                     <p className="text-3xl font-bold text-blue-600">
-                        {walletQuery.data.wallet ? formatCurrency(walletQuery.data.wallet.balance) : formatCurrency(0)}
+                        {walletQuery.data?.wallet?.balance !== undefined && walletQuery.data?.wallet?.balance !== null 
+                            ? formatCurrency(walletQuery.data.wallet.balance) 
+                            : formatCurrency(0)}
                     </p>
                 </div>
             )}
@@ -206,18 +254,18 @@ export default function WalletPage() {
                     onClick={() => setShowDepositModal(true)}
                     className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition"
                 >
-                    Deposit
+                    Depositar
                 </button>
                 <button
                     onClick={() => setShowTransferModal(true)}
                     className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
                 >
-                    Transfer
+                    Transferir
                 </button>
             </div>
 
             <div className="bg-white p-6 rounded-lg border shadow-sm">
-                <h2 className="text-xl font-semibold mb-4">Recent Transactions</h2>
+                <h2 className="text-xl font-semibold mb-4">Transações Recentes</h2>
                 {transactionsQuery.isLoading ? (
                     <div className="space-y-2">
                         <Skeleton className="h-16" />
@@ -229,36 +277,47 @@ export default function WalletPage() {
                         {transactionsQuery.data.transactions.map((tx) => (
                             <div key={tx.id} className="border p-4 rounded-lg">
                                 <div className="flex justify-between items-start">
-                                    <div>
+                                    <div className="flex-1">
                                         <p className="font-medium">{tx.type}</p>
-                                        <p className="text-sm text-gray-600">{tx.description || 'No description'}</p>
+                                        <p className="text-sm text-gray-600">{tx.description || 'Sem descrição'}</p>
                                         <p className="text-xs text-gray-500">{new Date(tx.createdAt).toLocaleString()}</p>
                                     </div>
-                                    <div className="text-right">
-                                        <p className={`font-bold ${tx.type === 'DEPOSIT' || (tx.type === 'TRANSFER' && tx.receiverId) ? 'text-green-600' : 'text-red-600'}`}>
-                                            {tx.type === 'DEPOSIT' || (tx.type === 'TRANSFER' && tx.receiverId) ? '+' : '-'}
-                                            {formatCurrency(tx.amount)}
-                                        </p>
-                                        <p className={`text-sm ${tx.status === 'COMPLETED' ? 'text-green-600' : tx.status === 'FAILED' ? 'text-red-600' : 'text-yellow-600'}`}>
-                                            {tx.status}
-                                        </p>
+                                    <div className="text-right flex items-center gap-4">
+                                        <div>
+                                            <p className={`font-bold ${tx.type === 'DEPOSIT' || (tx.type === 'TRANSFER' && tx.receiverId) ? 'text-green-600' : 'text-red-600'}`}>
+                                                {tx.type === 'DEPOSIT' || (tx.type === 'TRANSFER' && tx.receiverId) ? '+' : '-'}
+                                                {formatCurrency(tx.amount)}
+                                            </p>
+                                            <p className={`text-sm ${tx.status === 'COMPLETED' ? 'text-green-600' : tx.status === 'FAILED' ? 'text-red-600' : tx.status === 'REVERSED' ? 'text-orange-600' : 'text-yellow-600'}`}>
+                                                {tx.status}
+                                            </p>
+                                        </div>
+                                        {canReverseTransaction(tx) && (
+                                            <button
+                                                onClick={() => handleReverseClick(tx.id)}
+                                                className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition"
+                                                title="Reverter transação"
+                                            >
+                                                Reverter
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <p className="text-gray-500">No transactions yet</p>
+                    <p className="text-gray-500">Nenhuma transação ainda</p>
                 )}
             </div>
 
             {showDepositModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-lg max-w-md w-full">
-                        <h3 className="text-xl font-semibold mb-4">Deposit Money</h3>
+                        <h3 className="text-xl font-semibold mb-4">Depositar Dinheiro</h3>
                         <form onSubmit={handleDeposit} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium mb-1">Amount</label>
+                                <label className="block text-sm font-medium mb-1">Valor</label>
                                 <input
                                     type="number"
                                     step="0.01"
@@ -270,7 +329,7 @@ export default function WalletPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">Description (optional)</label>
+                                <label className="block text-sm font-medium mb-1">Descrição (opcional)</label>
                                 <input
                                     type="text"
                                     value={depositDescription}
@@ -284,14 +343,14 @@ export default function WalletPage() {
                                     disabled={depositMutation.isPending}
                                     className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
                                 >
-                                    {depositMutation.isPending ? 'Processing...' : 'Deposit'}
+                                    {depositMutation.isPending ? 'Processando...' : 'Depositar'}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setShowDepositModal(false)}
                                     className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
                                 >
-                                    Cancel
+                                    Cancelar
                                 </button>
                             </div>
                         </form>
@@ -302,10 +361,10 @@ export default function WalletPage() {
             {showTransferModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-lg max-w-md w-full">
-                        <h3 className="text-xl font-semibold mb-4">Transfer Money</h3>
+                        <h3 className="text-xl font-semibold mb-4">Transferir Dinheiro</h3>
                         <form onSubmit={handleTransfer} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium mb-1">Receiver ID</label>
+                                <label className="block text-sm font-medium mb-1">ID do Destinatário</label>
                                 <input
                                     type="text"
                                     value={transferReceiverId}
@@ -315,7 +374,7 @@ export default function WalletPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">Amount</label>
+                                <label className="block text-sm font-medium mb-1">Valor</label>
                                 <input
                                     type="number"
                                     step="0.01"
@@ -327,7 +386,7 @@ export default function WalletPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">Description (optional)</label>
+                                <label className="block text-sm font-medium mb-1">Descrição (opcional)</label>
                                 <input
                                     type="text"
                                     value={transferDescription}
@@ -341,14 +400,57 @@ export default function WalletPage() {
                                     disabled={transferMutation.isPending}
                                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
                                 >
-                                    {transferMutation.isPending ? 'Processing...' : 'Transfer'}
+                                    {transferMutation.isPending ? 'Processando...' : 'Transferir'}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setShowTransferModal(false)}
                                     className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
                                 >
-                                    Cancel
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {showReverseModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg max-w-md w-full">
+                        <h3 className="text-xl font-semibold mb-4">Reverter Transação</h3>
+                        <p className="text-sm text-gray-600 mb-4">
+                            Tem certeza que deseja reverter esta transação? Esta ação não pode ser desfeita.
+                        </p>
+                        <form onSubmit={handleReverse} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Motivo (opcional)</label>
+                                <textarea
+                                    value={reverseReason}
+                                    onChange={(e) => setReverseReason(e.target.value)}
+                                    className="border px-3 py-2 w-full rounded"
+                                    rows={3}
+                                    placeholder="Digite o motivo da reversão..."
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    type="submit"
+                                    disabled={reverseMutation.isPending}
+                                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+                                >
+                                    {reverseMutation.isPending ? 'Processando...' : 'Confirmar Reversão'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowReverseModal(false);
+                                        setReverseReason('');
+                                        setSelectedTransactionId(null);
+                                    }}
+                                    className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+                                >
+                                    Cancelar
                                 </button>
                             </div>
                         </form>

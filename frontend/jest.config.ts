@@ -12,7 +12,7 @@ const config: Config = {
     '^.+\\.(css|scss)$': 'identity-obj-proxy',
   },
   testMatch: ['<rootDir>/src/tests/**/*.(spec|test).ts?(x)'],
-  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/src/tests/pages/', '<rootDir>/src/tests/components/'],
+  testPathIgnorePatterns: ['/node_modules/'],
   transformIgnorePatterns: ['/node_modules/'],
 };
 

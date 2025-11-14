@@ -50,11 +50,26 @@ export class UserPrismaRepository implements UserRepository {
       updateData.passwordHash = data.passwordHash;
     }
 
-    const user = await this.prisma.user.update({
-      where: { id: data.id },
-      data: updateData,
-    });
-    return this.toDomain(user);
+    if (Object.keys(updateData).length === 0) {
+      const existing = await this.findById(data.id);
+      if (!existing) {
+        throw new Error("User not found");
+      }
+      return existing;
+    }
+
+    try {
+      const user = await this.prisma.user.update({
+        where: { id: data.id },
+        data: updateData,
+      });
+      return this.toDomain(user);
+    } catch (error: any) {
+      if (error.code === 'P2025') {
+        throw new Error("User not found");
+      }
+      throw error;
+    }
   }
 
   async deleteById(id: string): Promise<void> {

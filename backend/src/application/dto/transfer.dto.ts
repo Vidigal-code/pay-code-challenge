@@ -1,10 +1,12 @@
 import {IsNumber, IsOptional, IsString, Min} from "class-validator";
+import {Type} from "class-transformer";
 
 export class TransferDto {
     @IsString()
     receiverId!: string;
 
-    @IsNumber()
+    @Type(() => Number)
+    @IsNumber({}, {message: "Amount must be a number"})
     @Min(0.01, {message: "Amount must be greater than 0"})
     amount!: number;
 

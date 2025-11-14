@@ -40,13 +40,20 @@ export class WalletPrismaRepository implements WalletRepository {
     if (data.balance === undefined || data.balance === null) {
       throw new Error("Balance is required for wallet update");
     }
-    const wallet = await this.prisma.wallet.update({
-      where: { id: data.id },
-      data: {
-        balance: data.balance,
-      },
-    });
-    return this.toDomain(wallet);
+    try {
+      const wallet = await this.prisma.wallet.update({
+        where: { id: data.id },
+        data: {
+          balance: data.balance,
+        },
+      });
+      return this.toDomain(wallet);
+    } catch (error: any) {
+      if (error.code === 'P2025') {
+        throw new Error("Wallet not found");
+      }
+      throw error;
+    }
   }
 
   async deleteById(id: string): Promise<void> {

@@ -9,6 +9,7 @@ import {
 } from "@domain/entities/transaction.entity";
 import { Wallet } from "@domain/entities/wallet.entity";
 import { DomainEventsService } from "@domain/services/domain-events.service";
+import { Logger } from "@nestjs/common";
 
 export interface TransferInput {
   senderId: string;
@@ -18,6 +19,8 @@ export interface TransferInput {
 }
 
 export class TransferUseCase {
+  private readonly logger = new Logger(TransferUseCase.name);
+
   constructor(
     private readonly walletRepository: WalletRepository,
     private readonly transactionRepository: TransactionRepository,
@@ -237,7 +240,7 @@ export class TransferUseCase {
           });
         }
       } catch (rollbackError) {
-        console.error("Rollback failed:", rollbackError);
+        this.logger.error("Rollback failed:", rollbackError);
       }
 
       await this.transactionRepository.update({

@@ -2,6 +2,7 @@ import {
   Injectable,
   ExecutionContext,
   UnauthorizedException,
+  Inject,
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { ConfigService } from "@nestjs/config";
@@ -9,6 +10,7 @@ import { JWEService } from "@infrastructure/auth/jwe.service";
 import { JwtService } from "@nestjs/jwt";
 import {
   UserRepository,
+  USER_REPOSITORY,
 } from "@domain/repositories/user.repository";
 
 @Injectable()
@@ -20,7 +22,7 @@ export class JwtAuthGuard extends AuthGuard("jwt") {
     private readonly configService: ConfigService,
     private readonly jweService: JWEService,
     private readonly jwtService: JwtService,
-    private readonly userRepository: UserRepository,
+    @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
   ) {
     super();
     this.useJWE = configService.get<boolean>("app.jwe.enabled") ?? true;

@@ -1,6 +1,7 @@
 import {Module} from "@nestjs/common";
 import {InfrastructureModule} from "@infrastructure/infrastructure.module";
 import {RabbitMQModule} from "@infrastructure/messaging/rabbitmq.module";
+import {AuthInfraModule} from "@infrastructure/auth/auth-infra.module";
 import {WalletController} from "@interfaces/http/wallet.controller";
 import {CreateWalletUseCase} from "@application/use-cases/create-wallet.usecase";
 import {GetWalletUseCase} from "@application/use-cases/get-wallet.usecase";
@@ -14,7 +15,7 @@ import {TRANSACTION_REPOSITORY} from "@domain/repositories/transaction.repositor
 import {USER_REPOSITORY} from "@domain/repositories/user.repository";
 
 @Module({
-    imports: [InfrastructureModule, RabbitMQModule],
+    imports: [InfrastructureModule, RabbitMQModule, AuthInfraModule],
     controllers: [WalletController],
     providers: [
         {

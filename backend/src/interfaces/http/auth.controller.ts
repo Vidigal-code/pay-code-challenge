@@ -40,8 +40,23 @@ export class AuthController {
 
     @Get("profile")
     @UseGuards(JwtAuthGuard)
-    @ApiOperation({summary: "Get data from the authenticated user."})
-    @ApiResponse({status: 200, description: "Profile returned"})
+    @ApiOperation({
+        summary: "Get authenticated user profile",
+        description: "Returns the profile data of the currently authenticated user. Requires valid JWT/JWE token in cookie.",
+    })
+    @ApiResponse({
+        status: 200,
+        description: "Profile returned",
+        schema: {
+            type: "object",
+            properties: {
+                id: {type: "string"},
+                name: {type: "string"},
+                email: {type: "string"},
+            },
+        },
+    })
+    @ApiResponse({status: 401, type: ErrorResponse, description: "Unauthorized - invalid or missing token"})
     async profile(@CurrentUser() user: any) {
         const dbUser = await this.userRepo.findById(user.sub);
         if (!dbUser) {
@@ -55,17 +70,34 @@ export class AuthController {
     }
 
     @Post("signup")
-    @ApiOperation({summary: "Create a new user account"})
-    @ApiResponse({status: 201, description: "User created successfully"})
-    @ApiResponse({status: 400, description: "Validation error or email already used", type: ErrorResponse})
+    @ApiOperation({
+        summary: "Create a new user account",
+        description: "Registers a new user with email, name, and password. Automatically creates a wallet with zero balance. Returns JWT/JWE token in httpOnly cookie.",
+    })
+    @ApiResponse({
+        status: 201,
+        description: "User created successfully",
+        schema: {
+            type: "object",
+            properties: {
+                id: {type: "string"},
+                email: {type: "string"},
+                name: {type: "string"},
+            },
+        },
+    })
+    @ApiResponse({status: 400, description: "Validation error", type: ErrorResponse})
+    @ApiResponse({status: 409, description: "Email already used", type: ErrorResponse})
     @ApiBody({
         schema: {
+            type: "object",
+            required: ["email", "name", "password"],
             properties: {
-                email: {example: "john@example.com"},
-                name: {example: "John Doe"},
-                password: {example: "SecurePass123!"}
-            }
-        }
+                email: {type: "string", format: "email", example: "john@example.com"},
+                name: {type: "string", minLength: 1, example: "John Doe"},
+                password: {type: "string", minLength: 8, example: "SecurePass123!"},
+            },
+        },
     })
     async signup(
         @Body() body: SignupDto,
@@ -88,10 +120,33 @@ export class AuthController {
 
     @HttpCode(200)
     @Post("login")
-    @ApiOperation({summary: "Login with email and password"})
-    @ApiResponse({status: 200, description: "Login successful"})
-    @ApiResponse({status: 400, description: "Invalid credentials", type: ErrorResponse})
-    @ApiBody({schema: {properties: {email: {example: "john@example.com"}, password: {example: "SecurePass123!"}}}})
+    @ApiOperation({
+        summary: "Login with email and password",
+        description: "Authenticates user with email and password. Returns JWT/JWE token in httpOnly cookie. Token expires in 7 days (configurable).",
+    })
+    @ApiResponse({
+        status: 200,
+        description: "Login successful",
+        schema: {
+            type: "object",
+            properties: {
+                id: {type: "string"},
+                email: {type: "string"},
+                name: {type: "string"},
+            },
+        },
+    })
+    @ApiResponse({status: 401, description: "Invalid credentials", type: ErrorResponse})
+    @ApiBody({
+        schema: {
+            type: "object",
+            required: ["email", "password"],
+            properties: {
+                email: {type: "string", format: "email", example: "john@example.com"},
+                password: {type: "string", example: "SecurePass123!"},
+            },
+        },
+    })
     async login(
         @Body() body: LoginDto,
         @Res({passthrough: true}) res: Response,
@@ -113,9 +168,25 @@ export class AuthController {
 
     @Post("profile")
     @UseGuards(JwtAuthGuard)
-    @ApiOperation({summary: "Update current user profile"})
-    @ApiResponse({status: 200, description: "Profile updated"})
-    @ApiResponse({status: 400, description: "Validation errors", type: ErrorResponse})
+    @ApiOperation({
+        summary: "Update current user profile",
+        description: "Updates user profile fields (name, email, password). Email and password updates require currentPassword. Returns updated user data and new JWT/JWE token.",
+    })
+    @ApiResponse({
+        status: 200,
+        description: "Profile updated",
+        schema: {
+            type: "object",
+            properties: {
+                id: {type: "string"},
+                email: {type: "string"},
+                name: {type: "string"},
+            },
+        },
+    })
+    @ApiResponse({status: 400, description: "Validation errors or missing current password", type: ErrorResponse})
+    @ApiResponse({status: 401, description: "Invalid current password", type: ErrorResponse})
+    @ApiResponse({status: 409, description: "Email already in use", type: ErrorResponse})
     async updateProfile(
         @CurrentUser() user: any,
         @Body() dto: UpdateProfileDto,
@@ -179,15 +250,19 @@ export class AuthController {
             sameSite: "lax",
             secure: this.configService.get("app.nodeEnv") === "production",
             expires: new Date(0),
+            path: "/",
         });
         return {success: true};
     }
 
     @Delete("account")
     @UseGuards(JwtAuthGuard)
-    @ApiOperation({summary: "Delete user account"})
+    @ApiOperation({
+        summary: "Delete user account",
+        description: "Permanently deletes the authenticated user's account, wallet, and all associated data. This action cannot be undone.",
+    })
     @ApiResponse({status: 200, description: "Account deleted successfully"})
-    @ApiResponse({status: 400, type: ErrorResponse, description: "User not found"})
+    @ApiResponse({status: 401, type: ErrorResponse, description: "Unauthorized"})
     async deleteAccount(
         @CurrentUser() user: any,
         @Res({passthrough: true}) res: Response,
@@ -199,6 +274,7 @@ export class AuthController {
             sameSite: "lax",
             secure: this.configService.get("app.nodeEnv") === "production",
             expires: new Date(0),
+            path: "/",
         });
         
         return {success: true, message: "Account deleted successfully"};
@@ -209,7 +285,8 @@ export class AuthController {
             httpOnly: true,
             sameSite: "lax",
             secure: this.configService.get("app.nodeEnv") === "production",
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            path: "/",
         });
     }
 }

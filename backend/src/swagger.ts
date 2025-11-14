@@ -41,10 +41,22 @@ export function swaggerSetup(app: INestApplication) {
                 "All 4xx/5xx errors return JSON: { statusCode, code, message, timestamp, path }",
                 "The 'code' field comes from the ErrorCode enum for frontend translation.",
                 "",
+                "## Business Rules",
+                "- **Deposit**: Adds to balance even if negative (balance = current + amount)",
+                "- **Transfer**: Validates sufficient balance before processing",
+                "- **Reversal**: Can reverse COMPLETED DEPOSIT or TRANSFER transactions",
+                "- **Rollback**: Automatic rollback on any operation failure",
+                "- **Wallet**: Created automatically on user signup with zero balance",
+                "",
                 "## Observability",
                 "- Structured logs (Pino)",
                 "- Metrics (Prometheus)",
                 "- Health checks (/health, /health/readiness)",
+                "",
+                "## Testing",
+                "- Unit tests for all Use Cases",
+                "- Integration tests (E2E) for complete flows",
+                "- Test coverage for critical business rules",
             ].join("\n"),
         )
         .setVersion("2.0.0")
@@ -54,11 +66,21 @@ export function swaggerSetup(app: INestApplication) {
             type: "http",
             in: "cookie",
             scheme: "bearer",
+            description: "JWT/JWE token stored in httpOnly cookie",
         })
         .addTag("auth", "Authentication and user management")
         .addTag("wallet", "Digital wallet operations")
         .addTag("observability", "Metrics and health checks")
-        .addTag("jwks", "JSON Web Key Set for key rotation")
+        .addTag("security", "Security endpoints (JWKS)")
+        .addBearerAuth(
+            {
+                type: "http",
+                scheme: "bearer",
+                bearerFormat: "JWT",
+                description: "JWT token (alternative to cookie auth)",
+            },
+            "JWT",
+        )
         .build();
     const docs = SwaggerModule.createDocument(app, cfg, {
         extraModels: [ErrorResponse],

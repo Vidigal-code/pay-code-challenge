@@ -34,8 +34,8 @@ export class ListTransactionsUseCase {
       throw new ApplicationError("USER_NOT_FOUND");
     }
 
-    const page = input.page || 1;
-    const pageSize = input.pageSize || 10;
+    const page = input.page && input.page > 0 ? input.page : 1;
+    const pageSize = input.pageSize && input.pageSize > 0 ? Math.min(input.pageSize, 100) : 10;
 
     const type = input.type
       ? (input.type.toUpperCase() as TransactionType)

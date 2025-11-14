@@ -31,7 +31,7 @@ export default function DashboardPage() {
                 const {data} = await http.get("/wallet/dashboard/kpis");
                 return data.kpis !== undefined ? { kpis: data.kpis } : data;
             } catch (err) {
-                show({type: "error", message: getErrorMessage(err, "Failed to load KPIs")});
+                show({type: "error", message: getErrorMessage(err, "Falha ao carregar indicadores")});
                 throw err;
             }
         },

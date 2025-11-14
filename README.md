@@ -26,6 +26,7 @@
 - ✅ Observabilidade com Prometheus e logs estruturados
 - ✅ Health checks (/health, /health/readiness)
 - ✅ Testes TDD (Jest) backend e frontend
+- ✅ Testes de integração (E2E) backend e frontend
 - ✅ CI/CD configurado (GitHub Actions)
 - ✅ Documentação completa com Swagger (inglês)
 
@@ -82,6 +83,20 @@ docker compose logs -f api worker
 - **RabbitMQ Management**: http://localhost:15672 (guest/guest)
 - **Health Check**: http://localhost:4000/health
 - **Readiness Check**: http://localhost:4000/health/readiness
+
+**Nota sobre RabbitMQ:**
+Se você encontrar erros `PRECONDITION-FAILED` ao iniciar, as filas podem ter configurações conflitantes. O código agora detecta e usa filas existentes automaticamente. Para limpar e recriar:
+
+**Via RabbitMQ Management UI (recomendado):**
+1. Acesse http://localhost:15672 (guest/guest)
+2. Vá em "Queues"
+3. Delete as filas: `financial_events`, `financial_events.dlq`, `audit.logs`, `audit.logs.dlq`
+4. Reinicie a aplicação
+
+**Via script Node.js:**
+```bash
+cd backend && node scripts/clean-rabbitmq-queues.js
+```
 
 **Workers:**
 - 2 instâncias de workers processando eventos financeiros

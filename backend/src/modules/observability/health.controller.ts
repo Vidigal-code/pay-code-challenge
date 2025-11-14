@@ -32,8 +32,12 @@ export class HealthController {
 
         // RabbitMQ check
         try {
-            await this.rabbit.getChannel();
-            checks.rabbitmq = {status: "up"};
+            const channel = await this.rabbit.getChannel();
+            if (channel && !channel.closed) {
+                checks.rabbitmq = {status: "up"};
+            } else {
+                checks.rabbitmq = {status: "down", details: "Channel closed or not initialized"};
+            }
         } catch (err: any) {
             checks.rabbitmq = {status: "down", details: err?.message};
         }
@@ -76,9 +80,20 @@ export class HealthController {
         // RabbitMQ queues check
         try {
             const channel = await this.rabbit.getChannel();
-            // Verificar se queues principais existem
-            await this.rabbit.assertQueue("financial_events");
-            checks.queues = {status: "ready", details: "Queues declared"};
+            if (channel && !channel.closed) {
+                try {
+                    await channel.assertQueue("financial_events", {durable: true});
+                    checks.queues = {status: "ready", details: "Queues declared"};
+                } catch (assertErr: any) {
+                    if (assertErr.code === 406) {
+                        checks.queues = {status: "ready", details: "Queues exist with different config"};
+                    } else {
+                        checks.queues = {status: "not_ready", details: assertErr?.message};
+                    }
+                }
+            } else {
+                checks.queues = {status: "not_ready", details: "Channel closed or not initialized"};
+            }
         } catch (err: any) {
             checks.queues = {status: "not_ready", details: err?.message};
         }

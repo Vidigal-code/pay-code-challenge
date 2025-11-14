@@ -44,7 +44,13 @@ async function bootstrap() {
             message: "Transaction rate limit exceeded. Please wait before making another transaction.",
         }),
     );
-    app.useGlobalPipes(new ValidationPipe({whitelist: true, transform: true}));
+    app.useGlobalPipes(new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        transformOptions: {
+            enableImplicitConversion: true,
+        },
+    }));
 
     swaggerSetup(app);
 

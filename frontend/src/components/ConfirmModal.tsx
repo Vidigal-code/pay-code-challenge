@@ -16,8 +16,8 @@ export function ConfirmModal({
   children,
   onCancel,
   onConfirm,
-  confirmLabel = "Confirm ✅",
-  cancelLabel = "Cancel",
+  confirmLabel = "Confirmar",
+  cancelLabel = "Cancelar",
 }: ConfirmModalProps) {
   if (!open) return null;
   return (

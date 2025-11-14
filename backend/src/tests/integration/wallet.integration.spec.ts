@@ -1,0 +1,255 @@
+import { Test, TestingModule } from "@nestjs/testing";
+import { INestApplication } from "@nestjs/common";
+import * as request from "supertest";
+import { AppModule } from "../../app.module";
+import { PrismaService } from "../../infrastructure/prisma/prisma.service";
+
+describe("Wallet Integration Tests (e2e)", () => {
+  let app: INestApplication;
+  let prisma: PrismaService;
+  let authToken: string;
+  let userId: string;
+  let user2Id: string;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    prisma = moduleFixture.get<PrismaService>(PrismaService);
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await prisma.transaction.deleteMany({});
+    await prisma.wallet.deleteMany({});
+    await prisma.user.deleteMany({});
+    await app.close();
+  });
+
+  describe("Authentication Flow", () => {
+    it("should register a new user", async () => {
+      const response = await request(app.getHttpServer())
+        .post("/auth/signup")
+        .send({
+          email: "test@example.com",
+          name: "Test User",
+          password: "password123",
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty("id");
+      expect(response.body.email).toBe("test@example.com");
+      userId = response.body.id;
+    });
+
+    it("should login and get auth token", async () => {
+      const response = await request(app.getHttpServer())
+        .post("/auth/login")
+        .send({
+          email: "test@example.com",
+          password: "password123",
+        })
+        .expect(200);
+
+      expect(response.headers["set-cookie"]).toBeDefined();
+      const cookies = response.headers["set-cookie"];
+      const tokenCookie = cookies.find((c: string) => c.includes("paycode_session"));
+      expect(tokenCookie).toBeDefined();
+    });
+
+    it("should register a second user for transfers", async () => {
+      const response = await request(app.getHttpServer())
+        .post("/auth/signup")
+        .send({
+          email: "test2@example.com",
+          name: "Test User 2",
+          password: "password123",
+        })
+        .expect(201);
+
+      user2Id = response.body.id;
+    });
+  });
+
+  describe("Wallet Operations", () => {
+    beforeEach(async () => {
+      const loginResponse = await request(app.getHttpServer())
+        .post("/auth/login")
+        .send({
+          email: "test@example.com",
+          password: "password123",
+        });
+
+      const cookies = loginResponse.headers["set-cookie"];
+      authToken = cookies.find((c: string) => c.includes("paycode_session"))?.split(";")[0] || "";
+    });
+
+    it("should create a wallet", async () => {
+      const response = await request(app.getHttpServer())
+        .post("/wallet")
+        .set("Cookie", authToken)
+        .expect(201);
+
+      expect(response.body).toHaveProperty("wallet");
+      expect(response.body.wallet.balance).toBe(0);
+    });
+
+    it("should get wallet information", async () => {
+      const response = await request(app.getHttpServer())
+        .get("/wallet")
+        .set("Cookie", authToken)
+        .expect(200);
+
+      expect(response.body).toHaveProperty("wallet");
+      expect(response.body.wallet).toHaveProperty("balance");
+      expect(response.body.wallet).toHaveProperty("userId");
+    });
+
+    it("should deposit money to wallet", async () => {
+      const response = await request(app.getHttpServer())
+        .post("/wallet/deposit")
+        .set("Cookie", authToken)
+        .send({
+          amount: 100.50,
+          description: "Test deposit",
+        })
+        .expect(200);
+
+      expect(response.body).toHaveProperty("transaction");
+      expect(response.body).toHaveProperty("wallet");
+      expect(response.body.wallet.balance).toBe(100.50);
+      expect(response.body.transaction.type).toBe("DEPOSIT");
+      expect(response.body.transaction.status).toBe("COMPLETED");
+    });
+
+    it("should deposit even with negative balance", async () => {
+      await request(app.getHttpServer())
+        .post("/wallet/deposit")
+        .set("Cookie", authToken)
+        .send({ amount: -50 });
+
+      const response = await request(app.getHttpServer())
+        .post("/wallet/deposit")
+        .set("Cookie", authToken)
+        .send({
+          amount: 25,
+          description: "Deposit with negative balance",
+        })
+        .expect(200);
+
+      expect(response.body.wallet.balance).toBe(-25);
+    });
+
+    it("should transfer money to another user", async () => {
+      await request(app.getHttpServer())
+        .post("/wallet/deposit")
+        .set("Cookie", authToken)
+        .send({ amount: 200 });
+
+      const response = await request(app.getHttpServer())
+        .post("/wallet/transfer")
+        .set("Cookie", authToken)
+        .send({
+          receiverId: user2Id,
+          amount: 50,
+          description: "Test transfer",
+        })
+        .expect(200);
+
+      expect(response.body).toHaveProperty("transaction");
+      expect(response.body).toHaveProperty("senderWallet");
+      expect(response.body).toHaveProperty("receiverWallet");
+      expect(response.body.senderWallet.balance).toBe(150);
+      expect(response.body.receiverWallet.balance).toBe(50);
+    });
+
+    it("should reject transfer with insufficient balance", async () => {
+      const response = await request(app.getHttpServer())
+        .post("/wallet/transfer")
+        .set("Cookie", authToken)
+        .send({
+          receiverId: user2Id,
+          amount: 10000,
+        })
+        .expect(400);
+
+      expect(response.body.code).toBe("INSUFFICIENT_BALANCE");
+    });
+
+    it("should list transactions", async () => {
+      const response = await request(app.getHttpServer())
+        .get("/wallet/transactions")
+        .set("Cookie", authToken)
+        .query({ page: 1, pageSize: 10 })
+        .expect(200);
+
+      expect(response.body).toHaveProperty("transactions");
+      expect(response.body).toHaveProperty("total");
+      expect(response.body).toHaveProperty("page");
+      expect(response.body).toHaveProperty("pageSize");
+      expect(Array.isArray(response.body.transactions)).toBe(true);
+    });
+
+    it("should reverse a deposit transaction", async () => {
+      const depositResponse = await request(app.getHttpServer())
+        .post("/wallet/deposit")
+        .set("Cookie", authToken)
+        .send({ amount: 100 });
+
+      const transactionId = depositResponse.body.transaction.id;
+
+      const response = await request(app.getHttpServer())
+        .post(`/wallet/transactions/${transactionId}/reverse`)
+        .set("Cookie", authToken)
+        .send({ reason: "Test reversal" })
+        .expect(200);
+
+      expect(response.body).toHaveProperty("reversalTransaction");
+      expect(response.body).toHaveProperty("originalTransaction");
+      expect(response.body.originalTransaction.status).toBe("REVERSED");
+    });
+
+    it("should get dashboard KPIs", async () => {
+      const response = await request(app.getHttpServer())
+        .get("/wallet/dashboard/kpis")
+        .set("Cookie", authToken)
+        .expect(200);
+
+      expect(response.body).toHaveProperty("kpis");
+      expect(response.body.kpis).toHaveProperty("totalBalance");
+      expect(response.body.kpis).toHaveProperty("totalDeposits");
+      expect(response.body.kpis).toHaveProperty("totalTransfers");
+      expect(response.body.kpis).toHaveProperty("totalReceived");
+      expect(response.body.kpis).toHaveProperty("totalTransactions");
+    });
+  });
+
+  describe("Error Handling", () => {
+    it("should return 401 for unauthenticated requests", async () => {
+      await request(app.getHttpServer())
+        .get("/wallet")
+        .expect(401);
+    });
+
+    it("should return 400 for invalid deposit amount", async () => {
+      const loginResponse = await request(app.getHttpServer())
+        .post("/auth/login")
+        .send({
+          email: "test@example.com",
+          password: "password123",
+        });
+
+      const cookies = loginResponse.headers["set-cookie"];
+      const token = cookies.find((c: string) => c.includes("paycode_session"))?.split(";")[0] || "";
+
+      await request(app.getHttpServer())
+        .post("/wallet/deposit")
+        .set("Cookie", token)
+        .send({ amount: -10 })
+        .expect(400);
+    });
+  });
+});
+

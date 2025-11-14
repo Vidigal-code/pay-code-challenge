@@ -17,6 +17,7 @@ type ErrorCode =
   | 'CURRENT_PASSWORD_REQUIRED'
   | 'INVALID_EMAIL'
   | 'MISSING_USER_DATA'
+  | 'INVALID_DATE'
   | 'USER_NOT_AUTHENTICATED'
   | 'INVALID_CREDENTIALS'
   | 'INVALID_CURRENT_PASSWORD'
@@ -38,44 +39,45 @@ type ErrorCode =
   | 'INVALID_TOKEN';
 
 const successMessages: Record<SuccessCode, string> = {
-  USER_CREATED: 'Account created successfully!',
-  USER_AUTHENTICATED: 'Login successful!',
-  PROFILE_UPDATED: 'Profile updated successfully.',
-  ACCOUNT_DELETED: 'Account deleted successfully.',
-  WALLET_CREATED: 'Wallet created successfully.',
-  BALANCE_UPDATED: 'Balance updated successfully.',
-  TRANSACTION_CREATED: 'Transaction created successfully.',
-  TRANSACTION_COMPLETED: 'Transaction completed successfully.',
-  TRANSACTION_REVERSED: 'Transaction reversed successfully.',
-  DEPOSIT_COMPLETED: 'Deposit completed successfully.',
-  TRANSFER_COMPLETED: 'Transfer completed successfully.',
-  OPERATION_SUCCESS: 'Operation completed successfully.',
+  USER_CREATED: 'Conta criada com sucesso!',
+  USER_AUTHENTICATED: 'Login realizado com sucesso!',
+  PROFILE_UPDATED: 'Perfil atualizado com sucesso.',
+  ACCOUNT_DELETED: 'Conta deletada com sucesso.',
+  WALLET_CREATED: 'Carteira criada com sucesso.',
+  BALANCE_UPDATED: 'Saldo atualizado com sucesso.',
+  TRANSACTION_CREATED: 'Transação criada com sucesso.',
+  TRANSACTION_COMPLETED: 'Transação concluída com sucesso.',
+  TRANSACTION_REVERSED: 'Transação revertida com sucesso.',
+  DEPOSIT_COMPLETED: 'Depósito concluído com sucesso.',
+  TRANSFER_COMPLETED: 'Transferência concluída com sucesso.',
+  OPERATION_SUCCESS: 'Operação concluída com sucesso.',
 };
 
 const errorMessages: Record<ErrorCode, string> = {
-  NO_FIELDS_TO_UPDATE: 'No changes detected — no fields were updated.',
-  CURRENT_PASSWORD_REQUIRED: 'Current password is required to continue.',
-  INVALID_EMAIL: 'Invalid email address.',
-  MISSING_USER_DATA: 'Required user data is missing.',
-  USER_NOT_AUTHENTICATED: 'User not authenticated.',
-  INVALID_CREDENTIALS: 'Invalid credentials.',
-  INVALID_CURRENT_PASSWORD: 'The current password is incorrect.',
-  FORBIDDEN_ACTION: 'You do not have permission to perform this action.',
-  USER_NOT_FOUND: 'User not found.',
-  EMAIL_ALREADY_IN_USE: 'The email provided is already in use.',
-  EMAIL_ALREADY_USED: 'The email provided is already in use.',
-  WALLET_NOT_FOUND: 'Wallet not found.',
-  WALLET_ALREADY_EXISTS: 'Wallet already exists for this user.',
-  INSUFFICIENT_BALANCE: 'Insufficient balance to complete this transaction.',
-  INVALID_AMOUNT: 'Invalid amount. Amount must be greater than zero.',
-  TRANSACTION_NOT_FOUND: 'Transaction not found.',
-  TRANSACTION_CANNOT_BE_REVERSED: 'This transaction cannot be reversed.',
-  TRANSACTION_ALREADY_REVERSED: 'This transaction has already been reversed.',
-  INVALID_TRANSACTION_TYPE: 'Invalid transaction type.',
-  INVALID_TRANSACTION_STATUS: 'Invalid transaction status.',
-  RECEIVER_NOT_FOUND: 'Receiver not found.',
-  CANNOT_TRANSFER_TO_SELF: 'You cannot transfer money to yourself.',
-  INVALID_TOKEN: 'Invalid or expired token.',
+  NO_FIELDS_TO_UPDATE: 'Nenhuma alteração detectada — nenhum campo foi atualizado.',
+  CURRENT_PASSWORD_REQUIRED: 'A senha atual é necessária para continuar.',
+  INVALID_EMAIL: 'Endereço de email inválido.',
+  MISSING_USER_DATA: 'Dados do usuário obrigatórios estão faltando.',
+  INVALID_DATE: 'Data inválida.',
+  USER_NOT_AUTHENTICATED: 'Usuário não autenticado.',
+  INVALID_CREDENTIALS: 'Credenciais inválidas.',
+  INVALID_CURRENT_PASSWORD: 'A senha atual está incorreta.',
+  FORBIDDEN_ACTION: 'Você não tem permissão para realizar esta ação.',
+  USER_NOT_FOUND: 'Usuário não encontrado.',
+  EMAIL_ALREADY_IN_USE: 'O email fornecido já está em uso.',
+  EMAIL_ALREADY_USED: 'O email fornecido já está em uso.',
+  WALLET_NOT_FOUND: 'Carteira não encontrada.',
+  WALLET_ALREADY_EXISTS: 'Carteira já existe para este usuário.',
+  INSUFFICIENT_BALANCE: 'Saldo insuficiente para completar esta transação.',
+  INVALID_AMOUNT: 'Valor inválido. O valor deve ser maior que zero.',
+  TRANSACTION_NOT_FOUND: 'Transação não encontrada.',
+  TRANSACTION_CANNOT_BE_REVERSED: 'Esta transação não pode ser revertida.',
+  TRANSACTION_ALREADY_REVERSED: 'Esta transação já foi revertida.',
+  INVALID_TRANSACTION_TYPE: 'Tipo de transação inválido.',
+  INVALID_TRANSACTION_STATUS: 'Status de transação inválido.',
+  RECEIVER_NOT_FOUND: 'Destinatário não encontrado.',
+  CANNOT_TRANSFER_TO_SELF: 'Você não pode transferir dinheiro para si mesmo.',
+  INVALID_TOKEN: 'Token inválido ou expirado.',
 };
 
 export function getSuccessMessage(code: string, params?: Record<string, any>): string {

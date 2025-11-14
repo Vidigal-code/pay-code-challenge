@@ -32,15 +32,81 @@ export abstract class BaseConsumer implements OnModuleInit {
     async onModuleInit(): Promise<void> {
         try {
             const prefetch = this.options.prefetch ?? this.configService.get<number>("app.rabbitmq.prefetch") ?? 50;
-            await this.rabbitmqService.setPrefetch(prefetch);
-
+            
             const queue = this.options.queue;
             const dlq = this.options.dlq || `${queue}.dlq`;
 
-            // Garantir que queue e DLQ existem
             await this.rabbitmqService.assertEventQueue(queue, dlq);
 
-            const channel = await this.rabbitmqService.getChannel();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            let channel: any = null;
+            let retries = 10;
+            
+            while (retries > 0 && (!channel || channel.closed)) {
+                try {
+                    channel = await this.rabbitmqService.getChannel();
+                    if (channel && !channel.closed) {
+                        try {
+                            await channel.assertQueue(queue, {durable: true});
+                            this.logger.log(`Queue ${queue} verified and ready`);
+                            break;
+                        } catch (assertError: any) {
+                            if (assertError.code === 406) {
+                                this.logger.log(`Queue ${queue} exists with different config, will use existing`);
+                                break;
+                            } else if (assertError.message?.includes('closed')) {
+                                this.logger.warn(`Channel closed during assert, recreating...`);
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            } else {
+                                this.logger.warn(`Error asserting queue ${queue}:`, assertError.message);
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            }
+                        }
+                    }
+                } catch (err: any) {
+                    this.logger.warn(`Error getting channel (${retries} attempts left):`, err.message);
+                }
+                
+                if (!channel || channel.closed) {
+                    this.logger.warn(`Waiting for queue ${queue} to be ready (${retries} attempts left)...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                retries--;
+            }
+            
+            if (!channel || channel.closed) {
+                this.logger.error(`Failed to get open channel for queue ${queue} after retries. Workers will not start, but API will continue.`);
+                return;
+            }
+            
+            try {
+                await this.rabbitmqService.setPrefetch(prefetch);
+            } catch (prefetchError: any) {
+                this.logger.warn(`Failed to set prefetch, continuing anyway:`, prefetchError.message);
+                await new Promise(resolve => setTimeout(resolve, 300));
+                try {
+                    channel = await this.rabbitmqService.getChannel();
+                    if (!channel || channel.closed) {
+                        this.logger.error(`Channel is closed after prefetch error`);
+                        return;
+                    }
+                } catch (err) {
+                    this.logger.error(`Failed to get channel after prefetch error:`, err);
+                    return;
+                }
+            }
+            
+            try {
+                channel = await this.rabbitmqService.getChannel();
+                if (!channel || channel.closed) {
+                    this.logger.error(`Channel is closed after setPrefetch`);
+                    return;
+                }
+            } catch (err) {
+                this.logger.error(`Failed to get channel after setPrefetch:`, err);
+                return;
+            }
 
             await channel.consume(queue, async (msg: any) => {
                 if (!msg) return;
@@ -57,52 +123,42 @@ export abstract class BaseConsumer implements OnModuleInit {
 
                     this.logger.log(`Processing message: ${content.eventType} (messageId: ${messageId}, attempts: ${attempts})`);
 
-                    // Verificar idempotência
                     if (await this.idempotencyService.isProcessed(messageId)) {
                         this.logger.warn(`Message ${messageId} already processed, skipping`);
                         channel.ack(msg);
                         return;
                     }
 
-                    // Tentar adquirir lock
                     if (!(await this.idempotencyService.acquireLock(messageId, traceId))) {
                         this.logger.warn(`Message ${messageId} is already being processed, requeue`);
-                        channel.nack(msg, false, true); // Requeue
+                        channel.nack(msg, false, true); 
                         return;
                     }
 
                     try {
-                        // Processar mensagem
                         await this.handleMessage(content);
 
-                        // Marcar como processado
                         await this.idempotencyService.markProcessed(messageId);
 
-                        // ACK
                         channel.ack(msg);
 
                         const duration = Date.now() - startTime;
                         this.logger.log(`Message ${messageId} processed successfully in ${duration}ms`);
                     } catch (error) {
-                        // Erro no processamento
                         await this.idempotencyService.releaseLock(messageId);
 
                         const newAttempts = attempts + 1;
 
                         if (newAttempts >= this.maxRetries) {
-                            // Mover para DLQ
                             this.logger.error(`Message ${messageId} exceeded max retries, moving to DLQ`);
                             await this.moveToDLQ(channel, msg, content, error as Error);
                         } else {
-                            // Requeue com backoff
                             const delay = this.calculateBackoff(newAttempts);
                             this.logger.warn(`Message ${messageId} failed (attempt ${newAttempts}/${this.maxRetries}), requeue with delay ${delay}ms`);
 
-                            // Atualizar attempts no envelope
                             content.attempts = newAttempts;
                             const updatedBuffer = Buffer.from(JSON.stringify(content));
 
-                            // Publicar novamente com delay (se delay exchange plugin disponível)
                             const headers = {
                                 ...msg.properties.headers,
                                 attempts: newAttempts,
@@ -120,7 +176,6 @@ export abstract class BaseConsumer implements OnModuleInit {
                     }
                 } catch (error) {
                     this.logger.error(`Error processing message:`, error);
-                    // NACK sem requeue para evitar loop infinito
                     channel.nack(msg, false, false);
                 }
             });

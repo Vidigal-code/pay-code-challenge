@@ -9,6 +9,7 @@ import {
 } from "@domain/entities/transaction.entity";
 import { Wallet } from "@domain/entities/wallet.entity";
 import { DomainEventsService } from "@domain/services/domain-events.service";
+import { Logger } from "@nestjs/common";
 
 export interface DepositInput {
   userId: string;
@@ -17,6 +18,8 @@ export interface DepositInput {
 }
 
 export class DepositUseCase {
+  private readonly logger = new Logger(DepositUseCase.name);
+
   constructor(
     private readonly walletRepository: WalletRepository,
     private readonly transactionRepository: TransactionRepository,
@@ -128,7 +131,7 @@ export class DepositUseCase {
           balance: previousBalance,
         });
       } catch (rollbackError) {
-        console.error("Rollback failed:", rollbackError);
+        this.logger.error("Rollback failed:", rollbackError);
       }
 
       await this.transactionRepository.update({

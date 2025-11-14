@@ -41,15 +41,29 @@ export class TransactionPrismaRepository implements TransactionRepository {
   }
 
   async update(data: UpdateTransactionInput): Promise<Transaction> {
-    const transaction = await this.prisma.transaction.update({
-      where: { id: data.id },
-      data: {
-        status: data.status,
-        reversedById: data.reversedById,
-        reversedAt: data.reversedAt,
-      },
-    });
-    return this.toDomain(transaction);
+    try {
+      const updateData: any = {};
+      if (data.status !== undefined) {
+        updateData.status = data.status;
+      }
+      if (data.reversedById !== undefined) {
+        updateData.reversedById = data.reversedById;
+      }
+      if (data.reversedAt !== undefined) {
+        updateData.reversedAt = data.reversedAt;
+      }
+
+      const transaction = await this.prisma.transaction.update({
+        where: { id: data.id },
+        data: updateData,
+      });
+      return this.toDomain(transaction);
+    } catch (error: any) {
+      if (error.code === 'P2025') {
+        throw new Error("Transaction not found");
+      }
+      throw error;
+    }
   }
 
   async findByWalletId(

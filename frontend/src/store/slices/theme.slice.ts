@@ -18,7 +18,12 @@ const themeSlice = createSlice({
             state.theme = action.payload;
             if (typeof window !== "undefined") {
                 localStorage.setItem("theme", action.payload);
-                document.documentElement.classList.toggle("dark", action.payload === "dark");
+                const root = document.documentElement;
+                if (action.payload === "dark") {
+                    root.classList.add("dark");
+                } else {
+                    root.classList.remove("dark");
+                }
             }
         },
         toggleTheme: (state) => {
@@ -26,7 +31,12 @@ const themeSlice = createSlice({
             state.theme = newTheme;
             if (typeof window !== "undefined") {
                 localStorage.setItem("theme", newTheme);
-                document.documentElement.classList.toggle("dark", newTheme === "dark");
+                const root = document.documentElement;
+                if (newTheme === "dark") {
+                    root.classList.add("dark");
+                } else {
+                    root.classList.remove("dark");
+                }
             }
         },
     },

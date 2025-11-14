@@ -4,17 +4,41 @@ import {ToastProvider} from "../contexts/ToastContext";
 import Providers from "./providers";
 import {ToastContainer} from "../components/ui/Toast";
 import Navbar from "../components/Navbar";
+import {cookies} from "next/headers";
+import {SESSION_COOKIE} from "../lib/config";
 
 export const metadata = {
     title: "PAYCODE - Fintech Wallet Platform",
     description: "Sua carteira digital segura e moderna",
 };
 
-export default function RootLayout({children}: {children: React.ReactNode}) {
+export default async function RootLayout({children}: {children: React.ReactNode}) {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get(SESSION_COOKIE);
+    const initialAuth = Boolean(sessionCookie?.value);
+
     return (
         <html lang="pt-BR" suppressHydrationWarning>
+            <head>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `
+                            (function() {
+                                try {
+                                    const theme = localStorage.getItem('theme');
+                                    if (theme === 'dark') {
+                                        document.documentElement.classList.add('dark');
+                                    } else {
+                                        document.documentElement.classList.remove('dark');
+                                    }
+                                } catch (e) {}
+                            })();
+                        `,
+                    }}
+                />
+            </head>
             <body className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-                <Providers>
+                <Providers initialAuth={initialAuth}>
                     <ToastProvider>
                         <Navbar />
                         <main>{children}</main>
