@@ -134,7 +134,7 @@ export default function NavAuthMenu({ initialAuth }: { initialAuth: boolean }) {
             className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-1"
           >
             <FiUserPlus className="text-lg" />
-            Criar Conta
+            Registrar
           </Link>
         </>
       )}

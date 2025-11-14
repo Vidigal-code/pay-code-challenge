@@ -42,7 +42,8 @@ export default function Navbar({ initialAuth = false }: { initialAuth?: boolean 
         const checkAuth = () => {
             if (!mountedFlag) return;
             const hasCookie = !!readCookie(SESSION_COOKIE);
-            setIsAuth(hasCookie);
+            const authState = hasCookie || reduxAuth;
+            setIsAuth(authState);
             if (hasCookie !== reduxAuth) {
                 dispatch(setAuthenticated(hasCookie));
             }
@@ -72,15 +73,6 @@ export default function Navbar({ initialAuth = false }: { initialAuth?: boolean 
             window.removeEventListener('auth-changed', handleAuthChange);
         };
     }, [dispatch, reduxAuth, mounted]);
-    
-    useEffect(() => {
-        if (!mounted || typeof window === "undefined") return;
-        const hasCookie = !!readCookie(SESSION_COOKIE);
-        const authState = hasCookie || reduxAuth;
-        if (authState !== isAuth) {
-            setIsAuth(authState);
-        }
-    }, [reduxAuth, mounted, isAuth]);
 
     const handleLogout = async () => {
         try {
@@ -223,7 +215,7 @@ export default function Navbar({ initialAuth = false }: { initialAuth?: boolean 
                                                     text-white rounded-lg hover:shadow-lg transition-all text-center"
                                                     onClick={() => setIsMenuOpen(false)}
                                                 >
-                                                    Criar Conta
+                                                    Registrar
                                                 </Link>
                                             </>
                                         )}

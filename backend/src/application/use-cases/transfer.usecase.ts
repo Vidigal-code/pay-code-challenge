@@ -37,18 +37,27 @@ export class TransferUseCase {
       throw new ApplicationError("INVALID_AMOUNT");
     }
 
-    if (input.senderId === input.receiverId) {
-      throw new ApplicationError("CANNOT_TRANSFER_TO_SELF");
-    }
-
     const sender = await this.userRepository.findById(input.senderId);
     if (!sender) {
       throw new ApplicationError("USER_NOT_FOUND");
     }
 
-    const receiver = await this.userRepository.findById(input.receiverId);
+    // Try to find receiver by ID first, then by email
+    let receiver = await this.userRepository.findById(input.receiverId);
     if (!receiver) {
-      throw new ApplicationError("RECEIVER_NOT_FOUND");
+      // If not found by ID, try to find by email
+      receiver = await this.userRepository.findByEmail(input.receiverId);
+      if (!receiver) {
+        throw new ApplicationError("RECEIVER_NOT_FOUND");
+      }
+    }
+
+    // Use the actual receiver ID (in case we found by email)
+    const actualReceiverId = receiver.id;
+
+    // Validate that sender and receiver are different
+    if (input.senderId === actualReceiverId) {
+      throw new ApplicationError("CANNOT_TRANSFER_TO_SELF");
     }
 
     let senderWallet = await this.walletRepository.findByUserId(input.senderId);
@@ -60,11 +69,11 @@ export class TransferUseCase {
     }
 
     let receiverWallet = await this.walletRepository.findByUserId(
-      input.receiverId,
+      actualReceiverId,
     );
     if (!receiverWallet) {
       receiverWallet = await this.walletRepository.create({
-        userId: input.receiverId,
+        userId: actualReceiverId,
         balance: 0,
       });
     }
@@ -89,7 +98,7 @@ export class TransferUseCase {
     const transaction = await this.transactionRepository.create({
       walletId: senderWallet.id,
       senderId: input.senderId,
-      receiverId: input.receiverId,
+      receiverId: actualReceiverId,
       type: TransactionType.TRANSFER,
       status: TransactionStatus.PENDING,
       amount: input.amount,
@@ -128,7 +137,7 @@ export class TransferUseCase {
       const receiverTransaction = await this.transactionRepository.create({
         walletId: receiverWallet.id,
         senderId: input.senderId,
-        receiverId: input.receiverId,
+        receiverId: actualReceiverId,
         type: TransactionType.TRANSFER,
         status: TransactionStatus.COMPLETED,
         amount: input.amount,
@@ -188,7 +197,7 @@ export class TransferUseCase {
         payload: {
           transactionId: receiverTransaction.id,
           walletId: receiverWallet.id,
-          userId: input.receiverId,
+          userId: actualReceiverId,
           type: TransactionType.TRANSFER,
           amount: input.amount,
           status: TransactionStatus.COMPLETED,
@@ -201,7 +210,7 @@ export class TransferUseCase {
         payload: {
           transactionId: receiverTransaction.id,
           walletId: receiverWallet.id,
-          userId: input.receiverId,
+          userId: actualReceiverId,
           type: TransactionType.TRANSFER,
           amount: input.amount,
           newBalance: receiverWalletEntity.balance,
@@ -213,7 +222,7 @@ export class TransferUseCase {
         name: "wallet.balance.updated",
         payload: {
           walletId: receiverWallet.id,
-          userId: input.receiverId,
+          userId: actualReceiverId,
           previousBalance: receiverPreviousBalance,
           newBalance: receiverWalletEntity.balance,
           transactionId: receiverTransaction.id,

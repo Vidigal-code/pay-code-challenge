@@ -5,6 +5,7 @@ import { http } from '../../lib/http';
 import { getErrorMessage, getSuccessMessage } from '../../lib/error';
 import { useToast } from '../../hooks/useToast';
 import Skeleton from '../../components/Skeleton';
+import { formatDate } from '../../lib/date-utils';
 
 interface Wallet {
     id: string;
@@ -22,6 +23,16 @@ interface Transaction {
     amount: number;
     description?: string;
     createdAt: string;
+    sender?: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    receiver?: {
+        id: string;
+        name: string;
+        email: string;
+    };
 }
 
 interface DashboardKPIs {
@@ -306,7 +317,17 @@ export default function WalletPage() {
                                     <div className="flex-1">
                                         <p className="font-medium">{tx.type}</p>
                                         <p className="text-sm text-gray-600">{tx.description || 'Sem descrição'}</p>
-                                        <p className="text-xs text-gray-500">{new Date(tx.createdAt).toLocaleString()}</p>
+                                        {tx.type === 'TRANSFER' && tx.sender && (
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                De: {tx.sender.name} ({tx.sender.email})
+                                            </p>
+                                        )}
+                                        {tx.type === 'TRANSFER' && tx.receiver && (
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Para: {tx.receiver.name} ({tx.receiver.email})
+                                            </p>
+                                        )}
+                                        <p className="text-xs text-gray-500 mt-1">{formatDate(tx.createdAt)}</p>
                                     </div>
                                     <div className="text-right flex items-center gap-4">
                                         <div>
@@ -392,15 +413,17 @@ export default function WalletPage() {
                         <h3 className="text-xl font-semibold mb-4">Transferir Dinheiro</h3>
                         <form onSubmit={handleTransfer} className="space-y-4">
                             <div>
-                                <label htmlFor="transfer-receiver-id" className="block text-sm font-medium mb-1">ID do Destinatário</label>
+                                <label htmlFor="transfer-receiver-id" className="block text-sm font-medium mb-1">ID ou Email do Destinatário</label>
                                 <input
                                     id="transfer-receiver-id"
                                     type="text"
+                                    placeholder="Digite o ID ou email do destinatário"
                                     value={transferReceiverId}
                                     onChange={(e) => setTransferReceiverId(e.target.value)}
                                     className="border px-3 py-2 w-full rounded"
                                     required
                                 />
+                                <p className="text-xs text-gray-500 mt-1">Você pode usar o ID do usuário ou o email</p>
                             </div>
                             <div>
                                 <label htmlFor="transfer-amount" className="block text-sm font-medium mb-1">Valor</label>

@@ -60,8 +60,46 @@ export class ListTransactionsUseCase {
       pageSize,
     });
 
+    // Enrich transactions with user information
+    const enrichedTransactions = await Promise.all(
+      result.transactions.map(async (transaction) => {
+        const transactionData = transaction.toJSON();
+        
+        let senderInfo = null;
+        let receiverInfo = null;
+
+        if (transaction.senderId) {
+          const sender = await this.userRepository.findById(transaction.senderId);
+          if (sender) {
+            senderInfo = {
+              id: sender.id,
+              name: sender.name,
+              email: sender.email.toString(),
+            };
+          }
+        }
+
+        if (transaction.receiverId) {
+          const receiver = await this.userRepository.findById(transaction.receiverId);
+          if (receiver) {
+            receiverInfo = {
+              id: receiver.id,
+              name: receiver.name,
+              email: receiver.email.toString(),
+            };
+          }
+        }
+
+        return {
+          ...transactionData,
+          sender: senderInfo,
+          receiver: receiverInfo,
+        };
+      })
+    );
+
     return {
-      transactions: result.transactions,
+      transactions: enrichedTransactions as any,
       total: result.total,
       page,
       pageSize,

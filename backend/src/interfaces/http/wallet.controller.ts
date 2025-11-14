@@ -190,9 +190,12 @@ export class WalletController {
                 if (isNaN(transferAmount) || transferAmount <= 0) {
                     throw new ApplicationError("INVALID_AMOUNT");
                 }
+                
+                // receiverId can be either a user ID or an email
+                // The use case will handle both cases
                 return this.transferUseCase.execute({
                     senderId: userId,
-                    receiverId: dto.receiverId,
+                    receiverId: dto.receiverId.trim(),
                     amount: transferAmount,
                     description: dto.description,
                 });

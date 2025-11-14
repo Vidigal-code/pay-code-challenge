@@ -3,7 +3,7 @@ import {Type} from "class-transformer";
 
 export class TransferDto {
     @IsString()
-    receiverId!: string;
+    receiverId!: string; // Can be user ID or email
 
     @Type(() => Number)
     @IsNumber({}, {message: "Amount must be a number"})
