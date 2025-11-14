@@ -1,0 +1,77 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TransactionType {
+  DEPOSIT
+  TRANSFER
+  REVERSAL
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  REVERSED
+  FAILED
+}
+
+model User {
+  id                String       @id @default(cuid())
+  email             String       @unique
+  name              String
+  passwordHash      String
+  wallet            Wallet?
+  transactionsSent  Transaction[] @relation("TransactionSender")
+  transactionsReceived Transaction[] @relation("TransactionReceiver")
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([email])
+}
+
+model Wallet {
+  id          String       @id @default(cuid())
+  userId      String       @unique
+  balance     Decimal      @default(0) @db.Decimal(19, 2)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  createdAt   DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([userId])
+}
+
+model Transaction {
+  id                  String            @id @default(cuid())
+  walletId            String
+  senderId            String?
+  receiverId          String?
+  type                TransactionType
+  status              TransactionStatus @default(PENDING)
+  amount              Decimal           @db.Decimal(19, 2)
+  description         String?
+  reversedById        String?
+  reversedAt          DateTime?
+  originalTransactionId String?
+  wallet              Wallet            @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  sender              User?             @relation("TransactionSender", fields: [senderId], references: [id])
+  receiver            User?             @relation("TransactionReceiver", fields: [receiverId], references: [id])
+  originalTransaction Transaction?      @relation("TransactionReversal", fields: [originalTransactionId], references: [id])
+  reversedTransactions Transaction[]    @relation("TransactionReversal")
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([walletId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@index([originalTransactionId])
+}
