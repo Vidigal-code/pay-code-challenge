@@ -6,7 +6,7 @@ import {useQuery, useMutation} from "@tanstack/react-query";
 import {http} from "../../lib/http";
 import {getErrorMessage, getSuccessMessage} from "../../lib/error";
 import {useToast} from "../../hooks/useToast";
-import {useAuth} from "../../hooks/useAuth";
+import { useAuth } from "@/features/auth/model/use-auth";
 import Skeleton from "../../components/Skeleton";
 import {FiUser, FiMail, FiLock, FiTrash2, FiSave, FiCopy, FiCheck} from "react-icons/fi";
 

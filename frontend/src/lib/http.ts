@@ -1,4 +1,4 @@
 "use client";
-import { api } from "../api/apiClient";
+import { apiClient } from "@/shared/api/client";
 
-export const http = api;
+export const http = apiClient;

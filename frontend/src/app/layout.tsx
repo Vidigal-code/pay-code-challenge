@@ -3,9 +3,9 @@ import React from "react";
 import {ToastProvider} from "../contexts/ToastContext";
 import Providers from "./providers";
 import {ToastContainer} from "../components/ui/Toast";
-import Navbar from "../components/Navbar";
+import { Navbar } from "@/widgets/navbar";
 import {cookies} from "next/headers";
-import {SESSION_COOKIE} from "../lib/config";
+import { SESSION_COOKIE } from "@/shared/config";
 
 export const metadata = {
     title: "PAYCODE - Fintech Wallet Platform",
@@ -39,9 +39,9 @@ export default async function RootLayout({children}: {children: React.ReactNode}
                 />
             </head>
             <body className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors" suppressHydrationWarning>
-                <Providers initialAuth={initialAuth}>
+                <Providers>
                     <ToastProvider>
-                        <Navbar initialAuth={initialAuth} />
+                        <Navbar />
                         <main suppressHydrationWarning>{children}</main>
                         <ToastContainer />
                     </ToastProvider>

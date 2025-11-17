@@ -1,5 +1,5 @@
 import {NextResponse} from 'next/server';
-import {API_BASE, SESSION_COOKIE} from '../../../lib/config';
+import { API_BASE, SESSION_COOKIE } from '@/shared/config';
 
 export async function POST() {
     try {

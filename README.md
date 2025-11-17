@@ -63,8 +63,8 @@
 
 ```bash
 # Copiar arquivos .env (se não existirem)
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
+cp backend/.env.example-docker backend/.env
+cp frontend/.env.example-docker frontend/.env
 
 # Subir todos os serviços (API, Workers, Frontend, DB, Redis, RabbitMQ)
 docker compose up -d --build
