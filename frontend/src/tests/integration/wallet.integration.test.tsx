@@ -130,7 +130,10 @@ describe('Wallet Integration Tests', () => {
     const amountInput = screen.getByLabelText(/Valor/i);
     fireEvent.change(amountInput, { target: { value: '50' } });
 
-    const submitButton = screen.getByRole('button', { name: /Depositar/i });
+    const submitButtons = screen.getAllByRole('button', { name: /Depositar/i });
+    const submitButton = submitButtons.find((btn): btn is HTMLButtonElement => 
+        btn instanceof HTMLButtonElement && btn.type === 'submit'
+    ) || submitButtons[0] as HTMLButtonElement;
     fireEvent.click(submitButton);
 
     await waitFor(() => {
@@ -155,7 +158,7 @@ describe('Wallet Integration Tests', () => {
       expect(screen.getByText(/Transferir Dinheiro/i)).toBeInTheDocument();
     });
 
-    const receiverInput = screen.getByLabelText(/ID do Destinatário/i);
+    const receiverInput = screen.getByLabelText(/ID ou Email do Destinatário/i);
     const amountInput = screen.getByLabelText(/Valor/i);
 
     fireEvent.change(receiverInput, { target: { value: 'user2' } });
@@ -190,7 +193,10 @@ describe('Wallet Integration Tests', () => {
     const amountInput = screen.getByLabelText(/Valor/i);
     fireEvent.change(amountInput, { target: { value: '-10' } });
 
-    const submitButton = screen.getByRole('button', { name: /Depositar/i });
+    const submitButtons = screen.getAllByRole('button', { name: /Depositar/i });
+    const submitButton = submitButtons.find((btn): btn is HTMLButtonElement => 
+        btn instanceof HTMLButtonElement && btn.type === 'submit'
+    ) || submitButtons[0] as HTMLButtonElement;
     fireEvent.click(submitButton);
 
     await waitFor(() => {
@@ -216,7 +222,9 @@ describe('Wallet Integration Tests', () => {
     fireEvent.change(amountInput, { target: { value: '25' } });
 
     const submitButtons = screen.getAllByRole('button', { name: /Transferir/i });
-    const submitButton = submitButtons.find(btn => btn.type === 'submit') || submitButtons[0];
+    const submitButton = submitButtons.find((btn): btn is HTMLButtonElement => 
+        btn instanceof HTMLButtonElement && btn.type === 'submit'
+    ) || submitButtons[0] as HTMLButtonElement;
     fireEvent.click(submitButton);
 
     await waitFor(() => {

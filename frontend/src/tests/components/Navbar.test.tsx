@@ -1,6 +1,8 @@
+import React from "react";
 import {render, screen, fireEvent, waitFor, act} from "@testing-library/react";
 import {Provider} from "react-redux";
 import {configureStore} from "@reduxjs/toolkit";
+import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 import Navbar from "../../components/Navbar";
 import themeReducer from "../../store/slices/theme.slice";
 import authReducer from "../../store/slices/authSlice";
@@ -9,18 +11,38 @@ import {setAuthenticated} from "../../store/slices/authSlice";
 const createMockStore = (initialTheme: "light" | "dark" = "light", isAuthenticated: boolean = false) => {
     return configureStore({
         reducer: {
-            theme: themeReducer,
+            theme: themeReducer as typeof themeReducer,
             auth: authReducer,
         },
         preloadedState: {
             theme: {
-                theme: initialTheme,
+                theme: initialTheme as const,
             },
             auth: {
                 isAuthenticated,
             },
         },
     });
+};
+
+const createQueryClient = () => {
+    return new QueryClient({
+        defaultOptions: {
+            queries: { retry: false },
+            mutations: { retry: false },
+        },
+    });
+};
+
+const renderWithProviders = (component: React.ReactElement, store: ReturnType<typeof createMockStore>) => {
+    const queryClient = createQueryClient();
+    return render(
+        <Provider store={store}>
+            <QueryClientProvider client={queryClient}>
+                {component}
+            </QueryClientProvider>
+        </Provider>
+    );
 };
 
 describe("Navbar", () => {
@@ -33,11 +55,7 @@ describe("Navbar", () => {
 
     it("should render PAYCODE logo", async () => {
         const store = createMockStore();
-        render(
-            <Provider store={store}>
-                <Navbar initialAuth={false} />
-            </Provider>,
-        );
+        renderWithProviders(<Navbar initialAuth={false} />, store);
         await waitFor(() => {
             expect(screen.getByText("PAYCODE")).toBeInTheDocument();
         });
@@ -45,11 +63,7 @@ describe("Navbar", () => {
 
     it("should toggle theme when theme button is clicked", async () => {
         const store = createMockStore("light");
-        render(
-            <Provider store={store}>
-                <Navbar initialAuth={false} />
-            </Provider>,
-        );
+        renderWithProviders(<Navbar initialAuth={false} />, store);
 
         await waitFor(() => {
             const themeButton = screen.getByRole("button", {name: /Toggle theme/i});
@@ -64,11 +78,7 @@ describe("Navbar", () => {
 
     it("should show login and signup links when not authenticated", async () => {
         const store = createMockStore("light", false);
-        render(
-            <Provider store={store}>
-                <Navbar initialAuth={false} />
-            </Provider>,
-        );
+        renderWithProviders(<Navbar initialAuth={false} />, store);
 
         await waitFor(() => {
             expect(screen.getByText("Entrar")).toBeInTheDocument();
@@ -83,11 +93,7 @@ describe("Navbar", () => {
             value: "paycode_session=test-token",
         });
         
-        render(
-            <Provider store={store}>
-                <Navbar initialAuth={true} />
-            </Provider>,
-        );
+        renderWithProviders(<Navbar initialAuth={true} />, store);
 
         await waitFor(() => {
             expect(screen.getByText("Dashboard")).toBeInTheDocument();
@@ -103,9 +109,12 @@ describe("Navbar", () => {
         });
         
         const store = createMockStore("light", false);
+        const queryClient = createQueryClient();
         const {rerender} = render(
             <Provider store={store}>
-                <Navbar initialAuth={false} />
+                <QueryClientProvider client={queryClient}>
+                    <Navbar initialAuth={false} />
+                </QueryClientProvider>
             </Provider>,
         );
 
@@ -126,7 +135,9 @@ describe("Navbar", () => {
 
         rerender(
             <Provider store={store}>
-                <Navbar initialAuth={true} />
+                <QueryClientProvider client={queryClient}>
+                    <Navbar initialAuth={true} />
+                </QueryClientProvider>
             </Provider>,
         );
 
@@ -142,11 +153,7 @@ describe("Navbar", () => {
         });
         
         const store = createMockStore("light", false);
-        render(
-            <Provider store={store}>
-                <Navbar initialAuth={false} />
-            </Provider>,
-        );
+        renderWithProviders(<Navbar initialAuth={false} />, store);
 
         await waitFor(() => {
             const hamburgerButton = screen.getByRole("button", {name: /menu/i});

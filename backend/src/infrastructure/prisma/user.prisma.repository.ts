@@ -8,20 +8,43 @@ import {
 } from "@domain/repositories/user.repository";
 import { User } from "@domain/entities/user.entity";
 import { Email } from "@domain/value-objects/email.vo";
+import { ApplicationError } from "@application/errors/application-error";
+import { ErrorCode } from "@application/errors/error-code";
 
 @Injectable()
 export class UserPrismaRepository implements UserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: CreateUserInput): Promise<User> {
-    const user = await this.prisma.user.create({
-      data: {
-        email: data.email.trim().toLowerCase(),
-        name: data.name,
-        passwordHash: data.passwordHash,
-      },
-    });
-    return this.toDomain(user);
+    let userId: string | null = null;
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          email: data.email.trim().toLowerCase(),
+          name: data.name,
+          passwordHash: data.passwordHash,
+        },
+      });
+      userId = user.id;
+      try {
+        return this.toDomain(user);
+      } catch (domainError: any) {
+        // If toDomain fails, we need to clean up the user that was created
+        // This prevents orphaned users in the database
+        try {
+          await this.prisma.user.delete({ where: { id: userId } });
+        } catch (deleteError) {
+          // If deletion fails, log but don't throw - the original error is more important
+          console.error(`Failed to clean up user ${userId} after toDomain error:`, deleteError);
+        }
+        throw domainError; // Re-throw the original domain error
+      }
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        throw new ApplicationError(ErrorCode.EMAIL_ALREADY_IN_USE, "Email already in use");
+      }
+      throw error;
+    }
   }
 
   async findById(id: string): Promise<User | null> {
@@ -53,7 +76,7 @@ export class UserPrismaRepository implements UserRepository {
     if (Object.keys(updateData).length === 0) {
       const existing = await this.findById(data.id);
       if (!existing) {
-        throw new Error("User not found");
+        throw new ApplicationError(ErrorCode.USER_NOT_FOUND, "User not found");
       }
       return existing;
     }
@@ -66,7 +89,7 @@ export class UserPrismaRepository implements UserRepository {
       return this.toDomain(user);
     } catch (error: any) {
       if (error.code === 'P2025') {
-        throw new Error("User not found");
+        throw new ApplicationError(ErrorCode.USER_NOT_FOUND, "User not found");
       }
       throw error;
     }
@@ -79,14 +102,21 @@ export class UserPrismaRepository implements UserRepository {
   }
 
   private toDomain(record: any): User {
-    return User.create({
-      id: record.id,
-      email: Email.create(record.email),
-      name: record.name,
-      passwordHash: record.passwordHash,
-      createdAt: record.createdAt,
-      updatedAt: record.updatedAt,
-    });
+    try {
+      return User.create({
+        id: record.id,
+        email: Email.create(record.email),
+        name: record.name,
+        passwordHash: record.passwordHash,
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
+      });
+    } catch (error: any) {
+      if (error.message === "INVALID_EMAIL") {
+        throw new ApplicationError(ErrorCode.INVALID_EMAIL, "Invalid email format");
+      }
+      throw error;
+    }
   }
 }
 

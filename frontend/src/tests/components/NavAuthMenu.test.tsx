@@ -12,12 +12,12 @@ const mockUseAuth = useAuthHook.useAuth as jest.MockedFunction<typeof useAuthHoo
 const createMockStore = (isAuthenticated: boolean = false) => {
     return configureStore({
         reducer: {
-            theme: themeReducer,
+            theme: themeReducer as typeof themeReducer,
             auth: authReducer,
         },
         preloadedState: {
             theme: {
-                theme: "light",
+                theme: "light" as const,
             },
             auth: {
                 isAuthenticated,

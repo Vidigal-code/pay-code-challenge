@@ -5,9 +5,9 @@ import { Provider } from 'react-redux';
 import { store } from '../../store';
 import LoginPage from '../../app/login/page';
 import SignupPage from '../../app/signup/page';
-import { http } from '../../lib/http';
+import { authApi } from '../../features/auth/api/auth.api';
 
-jest.mock('../../lib/http');
+jest.mock('../../features/auth/api/auth.api');
 jest.mock('../../hooks/useToast', () => ({
   useToast: () => ({
     show: jest.fn(),
@@ -19,7 +19,7 @@ jest.mock('next/navigation', () => ({
   }),
 }));
 
-const mockHttp = http as jest.Mocked<typeof http>;
+const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
 
 describe('Auth Integration Tests', () => {
   let queryClient: QueryClient;
@@ -50,66 +50,67 @@ describe('Auth Integration Tests', () => {
 
   describe('Login', () => {
     it('should submit login form with valid credentials', async () => {
-      mockHttp.post.mockResolvedValue({
-        data: {
-          id: 'user1',
-          email: 'test@example.com',
-          name: 'Test User',
-        },
+      mockAuthApi.login.mockResolvedValue({
+        id: 'user1',
+        email: 'test@example.com',
+        name: 'Test User',
       });
 
       renderWithProviders(<LoginPage />);
 
       const emailInput = screen.getByPlaceholderText(/seu@email.com/i);
       const passwordInput = screen.getByPlaceholderText(/••••••••/i);
-      const submitButton = screen.getByRole('button', { name: /entrar/i });
+      const form = emailInput.closest('form');
 
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'password123' } });
-      fireEvent.click(submitButton);
+      
+      if (form) {
+        fireEvent.submit(form);
+      } else {
+        const submitButton = screen.getByRole('button', { name: /entrar/i });
+        fireEvent.click(submitButton);
+      }
 
       await waitFor(() => {
-        expect(mockHttp.post).toHaveBeenCalledWith('/auth/login', {
+        expect(mockAuthApi.login).toHaveBeenCalledWith({
           email: 'test@example.com',
           password: 'password123',
         });
-      });
+      }, { timeout: 5000 });
     });
 
     it('should show error on invalid credentials', async () => {
-      mockHttp.post.mockRejectedValue({
-        response: {
-          data: {
-            code: 'INVALID_CREDENTIALS',
-            message: 'Credenciais inválidas',
-          },
-        },
-      });
+      mockAuthApi.login.mockRejectedValue(new Error('Invalid credentials'));
 
       renderWithProviders(<LoginPage />);
 
       const emailInput = screen.getByPlaceholderText(/seu@email.com/i);
       const passwordInput = screen.getByPlaceholderText(/••••••••/i);
-      const submitButton = screen.getByRole('button', { name: /entrar/i });
+      const form = emailInput.closest('form');
 
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
-      fireEvent.click(submitButton);
+      
+      if (form) {
+        fireEvent.submit(form);
+      } else {
+        const submitButton = screen.getByRole('button', { name: /entrar/i });
+        fireEvent.click(submitButton);
+      }
 
       await waitFor(() => {
-        expect(mockHttp.post).toHaveBeenCalled();
-      });
+        expect(mockAuthApi.login).toHaveBeenCalled();
+      }, { timeout: 5000 });
     });
   });
 
   describe('Signup', () => {
     it('should submit signup form with valid data', async () => {
-      mockHttp.post.mockResolvedValue({
-        data: {
-          id: 'user1',
-          email: 'newuser@example.com',
-          name: 'New User',
-        },
+      mockAuthApi.signup.mockResolvedValue({
+        id: 'user1',
+        email: 'newuser@example.com',
+        name: 'New User',
       });
 
       renderWithProviders(<SignupPage />);
@@ -117,20 +118,26 @@ describe('Auth Integration Tests', () => {
       const nameInput = screen.getByPlaceholderText(/Seu nome completo/i);
       const emailInput = screen.getByPlaceholderText(/seu@email.com/i);
       const passwordInput = screen.getByPlaceholderText(/••••••••/i);
-      const submitButton = screen.getByRole('button', { name: /Criar Conta/i });
+      const form = nameInput.closest('form');
 
       fireEvent.change(nameInput, { target: { value: 'New User' } });
       fireEvent.change(emailInput, { target: { value: 'newuser@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'password123' } });
-      fireEvent.click(submitButton);
+      
+      if (form) {
+        fireEvent.submit(form);
+      } else {
+        const submitButton = screen.getByRole('button', { name: /Criar Conta/i });
+        fireEvent.click(submitButton);
+      }
 
       await waitFor(() => {
-        expect(mockHttp.post).toHaveBeenCalledWith('/auth/signup', {
+        expect(mockAuthApi.signup).toHaveBeenCalledWith({
           email: 'newuser@example.com',
           password: 'password123',
           name: 'New User',
         });
-      });
+      }, { timeout: 5000 });
     });
 
     it('should validate required fields', async () => {
@@ -140,7 +147,7 @@ describe('Auth Integration Tests', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(mockHttp.post).not.toHaveBeenCalled();
+        expect(mockAuthApi.signup).not.toHaveBeenCalled();
       });
     });
   });

@@ -7,6 +7,8 @@ import {
   WalletRepository,
 } from "@domain/repositories/wallet.repository";
 import { Wallet } from "@domain/entities/wallet.entity";
+import { ApplicationError } from "@application/errors/application-error";
+import { ErrorCode } from "@application/errors/error-code";
 
 @Injectable()
 export class WalletPrismaRepository implements WalletRepository {
@@ -26,7 +28,12 @@ export class WalletPrismaRepository implements WalletRepository {
       return this.toDomain(wallet);
     } catch (error: any) {
       if (error.code === 'P2002') {
-        throw new Error(`Wallet already exists for user ${data.userId}`);
+        // Wallet already exists - convert to ApplicationError
+        throw new ApplicationError(ErrorCode.WALLET_ALREADY_EXISTS, `Wallet already exists for user ${data.userId}`);
+      }
+      // P2003 is foreign key constraint violation - user doesn't exist
+      if (error.code === 'P2003') {
+        throw new ApplicationError(ErrorCode.USER_NOT_FOUND, `User ${data.userId} does not exist - cannot create wallet`);
       }
       const errorMessage = error?.message || "Database error";
       throw new Error(`Failed to create wallet for user ${data.userId}: ${errorMessage}`);

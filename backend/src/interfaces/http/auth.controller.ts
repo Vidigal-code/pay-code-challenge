@@ -167,6 +167,7 @@ export class AuthController {
     }
 
     @Post("profile")
+    @HttpCode(200)
     @UseGuards(JwtAuthGuard)
     @ApiOperation({
         summary: "Update current user profile",

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { INestApplication } from "@nestjs/common";
+import { INestApplication, ValidationPipe } from "@nestjs/common";
 import request from "supertest";
+import cookieParser from "cookie-parser";
 import { AppModule } from "../../app.module";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import { getTestDatabaseUrl, waitForDatabase } from "../setup/test-helpers";
@@ -36,6 +37,21 @@ describe("Auth Integration Tests (e2e)", () => {
         return;
       }
       
+      // Setup same middleware as production
+      app.use(cookieParser());
+      app.enableCors({
+        origin: ["http://localhost:3000"],
+        credentials: true,
+      });
+      app.useGlobalPipes(new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: false,
+        transform: true,
+        transformOptions: {
+          enableImplicitConversion: true,
+        },
+      }));
+      
       await app.init();
       dbAvailable = true;
     } catch (error: any) {
@@ -48,9 +64,21 @@ describe("Auth Integration Tests (e2e)", () => {
     }
   }, 60000);
 
+  beforeEach(async () => {
+    if (skipIfNoDb()) return;
+    // Clean up test data before each test
+    if (prisma) {
+      await prisma.transaction.deleteMany({});
+      await prisma.wallet.deleteMany({});
+      await prisma.user.deleteMany({});
+    }
+  });
+
   afterAll(async () => {
     if (app && prisma && dbAvailable) {
       try {
+        await prisma.transaction.deleteMany({});
+        await prisma.wallet.deleteMany({});
         await prisma.user.deleteMany({});
         await app.close();
       } catch (error) {
@@ -126,13 +154,18 @@ describe("Auth Integration Tests (e2e)", () => {
   describe("POST /auth/login", () => {
     beforeEach(async () => {
       if (skipIfNoDb()) return;
-      await request(app!.getHttpServer())
+      const signupResponse = await request(app!.getHttpServer())
         .post("/auth/signup")
         .send({
           email: "loginuser@example.com",
           name: "Login User",
           password: "password123",
         });
+      
+      // Ensure signup succeeded
+      if (signupResponse.status !== 201) {
+        throw new Error(`Signup failed: ${signupResponse.status} - ${JSON.stringify(signupResponse.body)}`);
+      }
     });
 
     it("should login with valid credentials", async () => {
@@ -182,13 +215,18 @@ describe("Auth Integration Tests (e2e)", () => {
 
     beforeEach(async () => {
       if (skipIfNoDb()) return;
-      await request(app!.getHttpServer())
+      const signupResponse = await request(app!.getHttpServer())
         .post("/auth/signup")
         .send({
           email: "profileuser@example.com",
           name: "Profile User",
           password: "password123",
         });
+
+      // Ensure signup succeeded
+      if (signupResponse.status !== 201) {
+        throw new Error(`Signup failed: ${signupResponse.status} - ${JSON.stringify(signupResponse.body)}`);
+      }
 
       const loginResponse = await request(app!.getHttpServer())
         .post("/auth/login")
@@ -197,9 +235,18 @@ describe("Auth Integration Tests (e2e)", () => {
           password: "password123",
         });
 
+      // Ensure login succeeded
+      if (loginResponse.status !== 200) {
+        throw new Error(`Login failed: ${loginResponse.status} - ${JSON.stringify(loginResponse.body)}`);
+      }
+
       const cookies = loginResponse.headers["set-cookie"];
       const cookieArray = Array.isArray(cookies) ? cookies : cookies ? [cookies] : [];
       authToken = cookieArray.find((c: string) => c.includes("paycode_session"))?.split(";")[0] || "";
+      
+      if (!authToken) {
+        throw new Error("Auth token not found in cookies");
+      }
     });
 
     it("should get user profile when authenticated", async () => {
@@ -227,13 +274,18 @@ describe("Auth Integration Tests (e2e)", () => {
 
     beforeEach(async () => {
       if (skipIfNoDb()) return;
-      await request(app!.getHttpServer())
+      const signupResponse = await request(app!.getHttpServer())
         .post("/auth/signup")
         .send({
           email: "updateuser@example.com",
           name: "Update User",
           password: "password123",
         });
+      
+      // Signup might return 201 (created) or 409 (already exists from previous test run)
+      if (signupResponse.status !== 201 && signupResponse.status !== 409) {
+        throw new Error(`Signup failed: ${signupResponse.status} - ${JSON.stringify(signupResponse.body)}`);
+      }
 
       const loginResponse = await request(app!.getHttpServer())
         .post("/auth/login")
@@ -242,9 +294,17 @@ describe("Auth Integration Tests (e2e)", () => {
           password: "password123",
         });
 
+      if (loginResponse.status !== 200) {
+        throw new Error(`Login failed: ${loginResponse.status} - ${JSON.stringify(loginResponse.body)}`);
+      }
+
       const cookies = loginResponse.headers["set-cookie"];
       const cookieArray = Array.isArray(cookies) ? cookies : cookies ? [cookies] : [];
       authToken = cookieArray.find((c: string) => c.includes("paycode_session"))?.split(";")[0] || "";
+      
+      if (!authToken) {
+        throw new Error("Auth token not found in cookies");
+      }
     });
 
     it("should update user profile", async () => {

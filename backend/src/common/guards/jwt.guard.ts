@@ -35,7 +35,7 @@ export class JwtAuthGuard extends AuthGuard("jwt") {
     const token = request.cookies?.[this.cookieName];
 
     if (!token) {
-      return false;
+      throw new UnauthorizedException("Authentication required");
     }
 
     if (this.useJWE) {
@@ -51,6 +51,10 @@ export class JwtAuthGuard extends AuthGuard("jwt") {
         };
         return true;
       } catch (error) {
+        if (error instanceof UnauthorizedException) {
+          throw error;
+        }
+        // If JWE decryption fails, try JWT as fallback
         try {
           const payload = await this.jwtService.verifyAsync(token, {
             secret: this.configService.get<string>("app.jwt.secret"),
@@ -68,8 +72,27 @@ export class JwtAuthGuard extends AuthGuard("jwt") {
           throw new UnauthorizedException("INVALID_TOKEN");
         }
       }
+    } else {
+      // JWE disabled, use JWT directly
+      try {
+        const payload = await this.jwtService.verifyAsync(token, {
+          secret: this.configService.get<string>("app.jwt.secret"),
+        });
+        const user = await this.userRepository.findById(payload.sub);
+        if (!user) {
+          throw new UnauthorizedException("USER_NOT_FOUND");
+        }
+        request.user = {
+          sub: user.id,
+          email: user.email.toString(),
+        };
+        return true;
+      } catch (error) {
+        if (error instanceof UnauthorizedException) {
+          throw error;
+        }
+        throw new UnauthorizedException("INVALID_TOKEN");
+      }
     }
-
-    return super.canActivate(context) as Promise<boolean>;
   }
 }

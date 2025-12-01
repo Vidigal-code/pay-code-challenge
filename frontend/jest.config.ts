@@ -10,6 +10,7 @@ const config: Config = {
   },
   moduleNameMapper: {
     '^.+\\.(css|scss)$': 'identity-obj-proxy',
+    '^@/(.*)$': '<rootDir>/src/$1',
   },
   testMatch: ['<rootDir>/src/tests/**/*.(spec|test).ts?(x)'],
   testPathIgnorePatterns: ['/node_modules/'],
