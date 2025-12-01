@@ -49,7 +49,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
           this.logger.warn(`ValidationError: Request validation failed - Path: ${request.method} ${request.url}`);
         }
       } else {
-        message = typeof exceptionResponse === "string" ? exceptionResponse : "Request failed";
+        message = exceptionResponse;
         code = "HTTP_ERROR";
         this.logger.warn(`HttpException: ${message} - Path: ${request.method} ${request.url}`);
       }
