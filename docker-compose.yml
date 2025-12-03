@@ -97,7 +97,6 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       target: development
-    container_name: paycode-worker
     env_file: ./backend/.env
     depends_on:
       api:
