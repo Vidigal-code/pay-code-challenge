@@ -3,8 +3,8 @@ import { INestApplication, ValidationPipe } from "@nestjs/common";
 import request from "supertest";
 import cookieParser from "cookie-parser";
 import { AppModule } from "../../app.module";
-import { PrismaService } from "../../infrastructure/prisma/prisma.service";
-import { getTestDatabaseUrl, waitForDatabase } from "../setup/test-helpers";
+import { PrismaService } from "@infrastructure/prisma/prisma.service";
+import { getTestDatabaseUrl, waitForDatabase, cleanupTestData, checkTablesExist, runMigrations } from "../setup/test-helpers";
 
 describe("Wallet Integration Tests (e2e)", () => {
   let app: INestApplication | null = null;
@@ -20,6 +20,61 @@ describe("Wallet Integration Tests (e2e)", () => {
       return true;
     }
     return false;
+  };
+
+  const ensureUserExists = async (
+    email: string,
+    name: string,
+    password = "password123",
+  ) => {
+    const existing = await prisma!.user.findUnique({
+      where: { email },
+    });
+    if (existing) {
+      return existing;
+    }
+
+    const signupResponse = await request(app!.getHttpServer())
+      .post("/auth/signup")
+      .send({ email, name, password });
+
+    if (signupResponse.status !== 201 && signupResponse.status !== 409) {
+      throw new Error(
+        `Failed to ensure user ${email}: ${signupResponse.status} - ${JSON.stringify(signupResponse.body)}`,
+      );
+    }
+
+    const created = await prisma!.user.findUnique({
+      where: { email },
+    });
+
+    if (!created) {
+      throw new Error(`User ${email} not found after signup`);
+    }
+
+    return created;
+  };
+
+  const ensureWalletExists = async (token: string) => {
+    const createResponse = await request(app!.getHttpServer())
+      .post("/wallet")
+      .set("Cookie", token);
+
+    if (createResponse.status === 201) {
+      return createResponse.body.wallet;
+    }
+
+    if (createResponse.status === 409) {
+      const getResponse = await request(app!.getHttpServer())
+        .get("/wallet")
+        .set("Cookie", token)
+        .expect(200);
+      return getResponse.body.wallet;
+    }
+
+    throw new Error(
+      `Failed to ensure wallet exists: ${createResponse.status} - ${JSON.stringify(createResponse.body)}`,
+    );
   };
 
   beforeAll(async () => {
@@ -38,6 +93,20 @@ describe("Wallet Integration Tests (e2e)", () => {
         console.warn("Database not available, skipping integration tests");
         dbAvailable = false;
         return;
+      }
+      
+      const tablesExist = await checkTablesExist(prisma);
+      if (!tablesExist) {
+        console.log("Database tables not found. Running migrations...");
+        await runMigrations();
+        
+        const tablesExistAfter = await checkTablesExist(prisma);
+        if (!tablesExistAfter) {
+          console.error("Migrations failed - tables still don't exist");
+          dbAvailable = false;
+          return;
+        }
+        console.log("Migrations completed successfully");
       }
       
       app.use(cookieParser());
@@ -68,22 +137,18 @@ describe("Wallet Integration Tests (e2e)", () => {
 
   beforeEach(async () => {
     if (skipIfNoDb()) return;
-    if (prisma) {
-      await prisma.transaction.deleteMany({});
-      await prisma.wallet.deleteMany({});
-      await prisma.user.deleteMany({});
-    }
+    await cleanupTestData(prisma);
   });
 
   afterAll(async () => {
     if (app && prisma && dbAvailable) {
       try {
-        await prisma.transaction.deleteMany({});
-        await prisma.wallet.deleteMany({});
-        await prisma.user.deleteMany({});
+        await cleanupTestData(prisma);
         await app.close();
-      } catch (error) {
-        console.warn("Error cleaning up test data:", error);
+      } catch (error: any) {
+        if (error?.code !== 'P2021') {
+          console.warn("Error cleaning up test data:", error);
+        }
       }
     }
   });
@@ -253,10 +318,12 @@ describe("Wallet Integration Tests (e2e)", () => {
 
     it("should deposit even with negative balance", async () => {
       if (skipIfNoDb()) return;
-      await request(app!.getHttpServer())
-        .post("/wallet/deposit")
-        .set("Cookie", authToken)
-        .send({ amount: -50 });
+      const primaryUser = await ensureUserExists("test@example.com", "Test User");
+      await ensureWalletExists(authToken);
+      await prisma!.wallet.update({
+        where: { userId: primaryUser.id },
+        data: { balance: "-50" },
+      });
 
       const response = await request(app!.getHttpServer())
         .post("/wallet/deposit")
@@ -272,20 +339,8 @@ describe("Wallet Integration Tests (e2e)", () => {
 
     it("should transfer money to another user", async () => {
       if (skipIfNoDb()) return;
-      // Ensure user2 exists
-      if (!user2Id) {
-        const signupResponse = await request(app!.getHttpServer())
-          .post("/auth/signup")
-          .send({
-            email: "test2@example.com",
-            name: "Test User 2",
-            password: "password123",
-          });
-        
-        if (signupResponse.status === 201 || signupResponse.status === 409) {
-          user2Id = signupResponse.body.id || (await prisma!.user.findUnique({ where: { email: "test2@example.com" } }))?.id;
-        }
-      }
+      const receiver = await ensureUserExists("test2@example.com", "Test User 2");
+      user2Id = receiver.id;
 
       await request(app!.getHttpServer())
         .post("/wallet/deposit")
@@ -312,20 +367,8 @@ describe("Wallet Integration Tests (e2e)", () => {
 
     it("should reject transfer with insufficient balance", async () => {
       if (skipIfNoDb()) return;
-      // Ensure user2 exists
-      if (!user2Id) {
-        const signupResponse = await request(app!.getHttpServer())
-          .post("/auth/signup")
-          .send({
-            email: "test2@example.com",
-            name: "Test User 2",
-            password: "password123",
-          });
-        
-        if (signupResponse.status === 201 || signupResponse.status === 409) {
-          user2Id = signupResponse.body.id || (await prisma!.user.findUnique({ where: { email: "test2@example.com" } }))?.id;
-        }
-      }
+      const receiver = await ensureUserExists("test2@example.com", "Test User 2");
+      user2Id = receiver.id;
 
       const response = await request(app!.getHttpServer())
         .post("/wallet/transfer")
@@ -365,7 +408,6 @@ describe("Wallet Integration Tests (e2e)", () => {
       expect(depositResponse.body).toHaveProperty("transaction");
       expect(depositResponse.body.transaction).toBeDefined();
       
-      // Handle both serialized (with id directly) and unserialized (with props.id) formats
       const transaction = depositResponse.body.transaction;
       const transactionId = transaction.id || transaction.props?.id;
       expect(transactionId).toBeDefined();
@@ -407,6 +449,7 @@ describe("Wallet Integration Tests (e2e)", () => {
 
     it("should return 400 for invalid deposit amount", async () => {
       if (skipIfNoDb()) return;
+      await ensureUserExists("test@example.com", "Test User");
       const loginResponse = await request(app!.getHttpServer())
         .post("/auth/login")
         .send({

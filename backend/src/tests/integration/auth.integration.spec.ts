@@ -3,8 +3,8 @@ import { INestApplication, ValidationPipe } from "@nestjs/common";
 import request from "supertest";
 import cookieParser from "cookie-parser";
 import { AppModule } from "../../app.module";
-import { PrismaService } from "../../infrastructure/prisma/prisma.service";
-import { getTestDatabaseUrl, waitForDatabase } from "../setup/test-helpers";
+import { PrismaService } from "@infrastructure/prisma/prisma.service";
+import { getTestDatabaseUrl, waitForDatabase, cleanupTestData, checkTablesExist, runMigrations } from "../setup/test-helpers";
 
 describe("Auth Integration Tests (e2e)", () => {
   let app: INestApplication | null = null;
@@ -37,7 +37,20 @@ describe("Auth Integration Tests (e2e)", () => {
         return;
       }
       
-      // Setup same middleware as production
+      const tablesExist = await checkTablesExist(prisma);
+      if (!tablesExist) {
+        console.log("Database tables not found. Running migrations...");
+        await runMigrations();
+        
+        const tablesExistAfter = await checkTablesExist(prisma);
+        if (!tablesExistAfter) {
+          console.error("Migrations failed - tables still don't exist");
+          dbAvailable = false;
+          return;
+        }
+        console.log("Migrations completed successfully");
+      }
+      
       app.use(cookieParser());
       app.enableCors({
         origin: ["http://localhost:3000"],
@@ -66,23 +79,18 @@ describe("Auth Integration Tests (e2e)", () => {
 
   beforeEach(async () => {
     if (skipIfNoDb()) return;
-    // Clean up test data before each test
-    if (prisma) {
-      await prisma.transaction.deleteMany({});
-      await prisma.wallet.deleteMany({});
-      await prisma.user.deleteMany({});
-    }
+    await cleanupTestData(prisma);
   });
 
   afterAll(async () => {
     if (app && prisma && dbAvailable) {
       try {
-        await prisma.transaction.deleteMany({});
-        await prisma.wallet.deleteMany({});
-        await prisma.user.deleteMany({});
+        await cleanupTestData(prisma);
         await app.close();
-      } catch (error) {
-        console.warn("Error cleaning up test data:", error);
+      } catch (error: any) {
+        if (error?.code !== 'P2021') {
+          console.warn("Error cleaning up test data:", error);
+        }
       }
     }
   });
@@ -162,7 +170,6 @@ describe("Auth Integration Tests (e2e)", () => {
           password: "password123",
         });
       
-      // Ensure signup succeeded
       if (signupResponse.status !== 201) {
         throw new Error(`Signup failed: ${signupResponse.status} - ${JSON.stringify(signupResponse.body)}`);
       }
@@ -223,7 +230,6 @@ describe("Auth Integration Tests (e2e)", () => {
           password: "password123",
         });
 
-      // Ensure signup succeeded
       if (signupResponse.status !== 201) {
         throw new Error(`Signup failed: ${signupResponse.status} - ${JSON.stringify(signupResponse.body)}`);
       }
@@ -235,7 +241,6 @@ describe("Auth Integration Tests (e2e)", () => {
           password: "password123",
         });
 
-      // Ensure login succeeded
       if (loginResponse.status !== 200) {
         throw new Error(`Login failed: ${loginResponse.status} - ${JSON.stringify(loginResponse.body)}`);
       }

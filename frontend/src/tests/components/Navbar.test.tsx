@@ -8,16 +8,18 @@ import themeReducer from "../../store/slices/theme.slice";
 import authReducer from "../../store/slices/authSlice";
 import {setAuthenticated} from "../../store/slices/authSlice";
 
+type ThemeState = ReturnType<typeof themeReducer>;
+
 const createMockStore = (initialTheme: "light" | "dark" = "light", isAuthenticated: boolean = false) => {
     return configureStore({
         reducer: {
-            theme: themeReducer as typeof themeReducer,
+            theme: themeReducer,
             auth: authReducer,
         },
         preloadedState: {
             theme: {
-                theme: initialTheme as const,
-            },
+                theme: initialTheme,
+            } as ThemeState,
             auth: {
                 isAuthenticated,
             },
@@ -82,7 +84,7 @@ describe("Navbar", () => {
 
         await waitFor(() => {
             expect(screen.getByText("Entrar")).toBeInTheDocument();
-            expect(screen.getByText("Criar Conta")).toBeInTheDocument();
+            expect(screen.getByText(/Registrar/i)).toBeInTheDocument();
         });
     });
 

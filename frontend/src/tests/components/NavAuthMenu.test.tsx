@@ -1,6 +1,8 @@
-import {render, screen, waitFor} from "@testing-library/react";
+import React from "react";
+import {render, screen, waitFor, act} from "@testing-library/react";
 import {Provider} from "react-redux";
 import {configureStore} from "@reduxjs/toolkit";
+import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 import NavAuthMenu from "../../components/NavAuthMenu";
 import themeReducer from "../../store/slices/theme.slice";
 import authReducer from "../../store/slices/authSlice";
@@ -9,21 +11,41 @@ import * as useAuthHook from "../../hooks/useAuth";
 jest.mock("../../hooks/useAuth");
 const mockUseAuth = useAuthHook.useAuth as jest.MockedFunction<typeof useAuthHook.useAuth>;
 
+type ThemeState = ReturnType<typeof themeReducer>;
+
 const createMockStore = (isAuthenticated: boolean = false) => {
     return configureStore({
         reducer: {
-            theme: themeReducer as typeof themeReducer,
+            theme: themeReducer,
             auth: authReducer,
         },
         preloadedState: {
             theme: {
-                theme: "light" as const,
-            },
+                theme: "light",
+            } as ThemeState,
             auth: {
                 isAuthenticated,
             },
         },
     });
+};
+
+const createQueryClient = () => new QueryClient({
+    defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+    },
+});
+
+const renderWithProviders = (component: React.ReactElement, store: ReturnType<typeof createMockStore>, client?: QueryClient) => {
+    const queryClient = client ?? createQueryClient();
+    return render(
+        <Provider store={store}>
+            <QueryClientProvider client={queryClient}>
+                {component}
+            </QueryClientProvider>
+        </Provider>,
+    );
 };
 
 describe("NavAuthMenu", () => {
@@ -45,15 +67,11 @@ describe("NavAuthMenu", () => {
         });
 
         const store = createMockStore(false);
-        render(
-            <Provider store={store}>
-                <NavAuthMenu initialAuth={false} />
-            </Provider>,
-        );
+        renderWithProviders(<NavAuthMenu initialAuth={false} />, store);
 
         await waitFor(() => {
             expect(screen.getByText("Entrar")).toBeInTheDocument();
-            expect(screen.getByText("Criar Conta")).toBeInTheDocument();
+            expect(screen.getByText(/Registrar/i)).toBeInTheDocument();
         });
     });
 
@@ -72,11 +90,7 @@ describe("NavAuthMenu", () => {
         });
 
         const store = createMockStore(true);
-        render(
-            <Provider store={store}>
-                <NavAuthMenu initialAuth={true} />
-            </Provider>,
-        );
+        renderWithProviders(<NavAuthMenu initialAuth={true} />, store);
 
         await waitFor(() => {
             expect(screen.getByText("Dashboard")).toBeInTheDocument();
@@ -102,11 +116,7 @@ describe("NavAuthMenu", () => {
         });
 
         const store = createMockStore(true);
-        render(
-            <Provider store={store}>
-                <NavAuthMenu initialAuth={true} />
-            </Provider>,
-        );
+        renderWithProviders(<NavAuthMenu initialAuth={true} />, store);
 
         await waitFor(() => {
             const logoutButton = screen.getByText("Sair");
@@ -129,20 +139,19 @@ describe("NavAuthMenu", () => {
         });
 
         const store = createMockStore(false);
-        const {rerender} = render(
-            <Provider store={store}>
-                <NavAuthMenu initialAuth={false} />
-            </Provider>,
-        );
+        const queryClient = createQueryClient();
+        const {rerender} = renderWithProviders(<NavAuthMenu initialAuth={false} />, store, queryClient);
 
         await waitFor(() => {
             expect(screen.getByText("Entrar")).toBeInTheDocument();
         });
 
-        store.dispatch({type: "auth/setAuthenticated", payload: true});
-        Object.defineProperty(document, "cookie", {
-            writable: true,
-            value: "paycode_session=test-token",
+        await act(async () => {
+            store.dispatch({type: "auth/setAuthenticated", payload: true});
+            Object.defineProperty(document, "cookie", {
+                writable: true,
+                value: "paycode_session=test-token",
+            });
         });
 
         mockUseAuth.mockReturnValue({
@@ -153,11 +162,15 @@ describe("NavAuthMenu", () => {
             setAuthenticated: jest.fn(),
         });
 
-        rerender(
-            <Provider store={store}>
-                <NavAuthMenu initialAuth={true} />
-            </Provider>,
-        );
+        await act(async () => {
+            rerender(
+                <Provider store={store}>
+                    <QueryClientProvider client={queryClient}>
+                        <NavAuthMenu initialAuth={true} />
+                    </QueryClientProvider>
+                </Provider>,
+            );
+        });
 
         await waitFor(() => {
             expect(screen.getByText("Dashboard")).toBeInTheDocument();

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Provider } from 'react-redux';
 import { store } from '../../store';
@@ -66,6 +66,11 @@ describe('Wallet Integration Tests', () => {
           },
         });
       }
+      if (url === '/auth/profile') {
+        return Promise.resolve({
+          data: { id: 'user1', name: 'Test User', email: 'user1@example.com' },
+        });
+      }
       return Promise.reject(new Error('Not found'));
     });
 
@@ -127,13 +132,11 @@ describe('Wallet Integration Tests', () => {
       expect(screen.getByText(/Depositar Dinheiro/i)).toBeInTheDocument();
     });
 
-    const amountInput = screen.getByLabelText(/Valor/i);
+    const depositModal = screen.getByText(/Depositar Dinheiro/i).closest('div') as HTMLElement;
+    const amountInput = within(depositModal).getByLabelText(/Valor/i);
     fireEvent.change(amountInput, { target: { value: '50' } });
 
-    const submitButtons = screen.getAllByRole('button', { name: /Depositar/i });
-    const submitButton = submitButtons.find((btn): btn is HTMLButtonElement => 
-        btn instanceof HTMLButtonElement && btn.type === 'submit'
-    ) || submitButtons[0] as HTMLButtonElement;
+    const submitButton = within(depositModal).getByRole('button', { name: /Depositar/i });
     fireEvent.click(submitButton);
 
     await waitFor(() => {
@@ -158,13 +161,14 @@ describe('Wallet Integration Tests', () => {
       expect(screen.getByText(/Transferir Dinheiro/i)).toBeInTheDocument();
     });
 
-    const receiverInput = screen.getByLabelText(/ID ou Email do Destinatário/i);
-    const amountInput = screen.getByLabelText(/Valor/i);
+    const transferModal = screen.getByText(/Transferir Dinheiro/i).closest('div') as HTMLElement;
+    const receiverInput = within(transferModal).getByLabelText(/ID ou Email do Destinatário/i);
+    const amountInput = within(transferModal).getByLabelText(/Valor/i);
 
     fireEvent.change(receiverInput, { target: { value: 'user2' } });
     fireEvent.change(amountInput, { target: { value: '25' } });
 
-    const submitButton = screen.getByRole('button', { name: /Transferir/i });
+    const submitButton = within(transferModal).getByRole('button', { name: /Transferir/i });
     fireEvent.click(submitButton);
 
     await waitFor(() => {
@@ -190,13 +194,11 @@ describe('Wallet Integration Tests', () => {
       expect(screen.getByText(/Depositar Dinheiro/i)).toBeInTheDocument();
     });
 
-    const amountInput = screen.getByLabelText(/Valor/i);
+    const depositModal = screen.getByText(/Depositar Dinheiro/i).closest('div') as HTMLElement;
+    const amountInput = within(depositModal).getByLabelText(/Valor/i);
     fireEvent.change(amountInput, { target: { value: '-10' } });
 
-    const submitButtons = screen.getAllByRole('button', { name: /Depositar/i });
-    const submitButton = submitButtons.find((btn): btn is HTMLButtonElement => 
-        btn instanceof HTMLButtonElement && btn.type === 'submit'
-    ) || submitButtons[0] as HTMLButtonElement;
+    const submitButton = within(depositModal).getByRole('button', { name: /Depositar/i });
     fireEvent.click(submitButton);
 
     await waitFor(() => {
@@ -218,13 +220,11 @@ describe('Wallet Integration Tests', () => {
       expect(screen.getByText(/Transferir Dinheiro/i)).toBeInTheDocument();
     });
 
-    const amountInput = screen.getByLabelText(/Valor/i);
+    const transferModal = screen.getByText(/Transferir Dinheiro/i).closest('div') as HTMLElement;
+    const amountInput = within(transferModal).getByLabelText(/Valor/i);
     fireEvent.change(amountInput, { target: { value: '25' } });
 
-    const submitButtons = screen.getAllByRole('button', { name: /Transferir/i });
-    const submitButton = submitButtons.find((btn): btn is HTMLButtonElement => 
-        btn instanceof HTMLButtonElement && btn.type === 'submit'
-    ) || submitButtons[0] as HTMLButtonElement;
+    const submitButton = within(transferModal).getByRole('button', { name: /Transferir/i });
     fireEvent.click(submitButton);
 
     await waitFor(() => {

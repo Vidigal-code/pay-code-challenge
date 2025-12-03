@@ -39,7 +39,6 @@ export class InMemoryUserRepository implements UserRepository {
   async update(data: UpdateUserInput): Promise<User> {
     const user = await this.findById(data.id);
     if (!user) throw new Error("NOT_FOUND");
-    // Update user properties if provided
     return user;
   }
 
