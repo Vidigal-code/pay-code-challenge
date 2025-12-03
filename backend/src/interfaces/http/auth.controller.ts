@@ -1,6 +1,6 @@
 import {Body, Controller, Delete, Get, HttpCode, Inject, Post, Res, UseGuards,} from "@nestjs/common";
 import {ApiBody, ApiOperation, ApiResponse, ApiTags} from "@nestjs/swagger";
-import {ErrorResponse} from "../../application/dto/error.response.dto";
+import {ErrorResponse} from "@application/dto/error.response.dto";
 import {JwtAuthGuard} from "@common/guards/jwt.guard";
 import {CurrentUser} from "@common/decorators/current-user.decorator";
 import {UpdateProfileDto} from "@application/dto/update-profile.dto";

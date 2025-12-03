@@ -9,7 +9,7 @@ import {
     UseGuards,
 } from "@nestjs/common";
 import {ApiBody, ApiCookieAuth, ApiOperation, ApiResponse, ApiTags} from "@nestjs/swagger";
-import {ErrorResponse} from "../../application/dto/error.response.dto";
+import {ErrorResponse} from "@application/dto/error.response.dto";
 import {JwtAuthGuard} from "@common/guards/jwt.guard";
 import {CurrentUser} from "@common/decorators/current-user.decorator";
 type User = any;

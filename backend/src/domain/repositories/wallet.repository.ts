@@ -7,7 +7,7 @@ export interface CreateWalletInput {
 
 export interface UpdateWalletInput {
     id: string;
-    balance: number; // Required - always update with complete balance value
+    balance: number;
 }
 
 export interface WalletRepository {
