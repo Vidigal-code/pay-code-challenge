@@ -428,4 +428,3 @@ Transação de reversão: COMPLETED
 
 ---
 
-**Última atualização**: 2024-12-14
