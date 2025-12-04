@@ -1,19 +1,19 @@
 "use client";
 
 import Link from 'next/link';
-import { useAuth } from '@/features/auth/model/use-auth';
-import { useAuthStatus } from '@/features/auth/model/use-auth-status';
 import { FiLayout, FiCreditCard, FiUser, FiLogOut, FiLogIn, FiUserPlus } from 'react-icons/fi';
 
-export function NavAuthMenu({ initialAuth }: { initialAuth: boolean }) {
-    const { isAuthenticated } = useAuthStatus();
-    const { logout } = useAuth();
+type NavAuthMenuProps = {
+    isAuthenticated: boolean;
+    onLogout: () => Promise<void>;
+};
 
+export function NavAuthMenu({ isAuthenticated, onLogout }: NavAuthMenuProps) {
     const handleLogout = async () => {
-        await logout();
+        await onLogout();
     };
 
-    const shouldShowAuth = isAuthenticated || initialAuth;
+    const shouldShowAuth = isAuthenticated;
 
     return (
         <div className="flex items-center gap-4">

@@ -22,11 +22,8 @@ export class DeleteAccountUseCase {
 
     const wallet = await this.walletRepository.findByUserId(input.userId);
     if (wallet) {
-      const transactions = await this.transactionRepository.list({
-        userId: input.userId,
-      });
-
-      // Em produção, você pode querer soft delete ou arquivar transações
+      // Em produção, você pode querer buscar e arquivar as transações
+      // antes de remover a carteira definitivamente
       // Por simplicidade, vamos apenas deletar a wallet
       // As transações podem ser mantidas para auditoria
       await this.walletRepository.deleteById(wallet.id);

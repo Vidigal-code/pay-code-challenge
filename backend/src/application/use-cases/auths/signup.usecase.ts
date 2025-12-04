@@ -20,15 +20,21 @@ export class SignupUseCase {
   async execute(input: SignupInput) {
     // Validate required fields
     if (!input.email || !input.name || !input.password) {
-      throw new ApplicationError(ErrorCode.MISSING_USER_DATA, "Email, name, and password are required");
+      throw new ApplicationError(
+        ErrorCode.MISSING_USER_DATA,
+        "Email, name, and password are required",
+      );
     }
 
     const email = input.email.trim().toLowerCase();
-    
+
     // Validate email format before creating Email value object
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      throw new ApplicationError(ErrorCode.INVALID_EMAIL, "Invalid email format");
+      throw new ApplicationError(
+        ErrorCode.INVALID_EMAIL,
+        "Invalid email format",
+      );
     }
 
     const existing = await this.userRepository.findByEmail(email);
@@ -37,7 +43,7 @@ export class SignupUseCase {
     }
 
     const passwordHash = await this.hashingService.hash(input.password);
-    
+
     // Create user first
     const user = await this.userRepository.create({
       email,
@@ -65,27 +71,47 @@ export class SignupUseCase {
           const doubleCheck = await this.userRepository.findById(user.id);
           if (!doubleCheck) {
             // User was deleted somehow - this is a critical error
-            throw new ApplicationError(ErrorCode.INTERNAL_SERVER_ERROR, `User ${user.id} was created but not found - cannot create wallet`);
+            throw new ApplicationError(
+              ErrorCode.INTERNAL_SERVER_ERROR,
+              `User ${user.id} was created but not found - cannot create wallet`,
+            );
           }
           // User exists but wallet creation failed - this is a database issue
-          throw new ApplicationError(ErrorCode.INTERNAL_SERVER_ERROR, `User ${user.id} exists but wallet creation failed: ${error.message}`);
+          throw new ApplicationError(
+            ErrorCode.INTERNAL_SERVER_ERROR,
+            `User ${user.id} exists but wallet creation failed: ${error.message}`,
+          );
         }
         // Re-throw other ApplicationErrors
         throw error;
       }
       // If wallet creation fails due to foreign key constraint, it means user doesn't exist
       // This shouldn't happen since we just created the user
-      if (error?.code === "P2003" || error?.message?.includes("Foreign key constraint") || error?.message?.includes("does not exist")) {
+      if (
+        error?.code === "P2003" ||
+        error?.message?.includes("Foreign key constraint") ||
+        error?.message?.includes("does not exist")
+      ) {
         // Double-check user exists
         const doubleCheck = await this.userRepository.findById(user.id);
         if (!doubleCheck) {
-          throw new ApplicationError(ErrorCode.INTERNAL_SERVER_ERROR, `User ${user.id} was created but not found - cannot create wallet`);
+          throw new ApplicationError(
+            ErrorCode.INTERNAL_SERVER_ERROR,
+            `User ${user.id} was created but not found - cannot create wallet`,
+          );
         }
         // User exists but wallet creation failed - this is a database issue
-        throw new ApplicationError(ErrorCode.INTERNAL_SERVER_ERROR, `User ${user.id} exists but wallet creation failed: ${error.message}`);
+        throw new ApplicationError(
+          ErrorCode.INTERNAL_SERVER_ERROR,
+          `User ${user.id} exists but wallet creation failed: ${error.message}`,
+        );
       }
       // If it's a duplicate wallet error, that's okay - wallet already exists
-      if (error?.code === "P2002" || error?.message?.includes("already exists") || error?.message?.includes("WALLET_ALREADY_EXISTS")) {
+      if (
+        error?.code === "P2002" ||
+        error?.message?.includes("already exists") ||
+        error?.message?.includes("WALLET_ALREADY_EXISTS")
+      ) {
         // Wallet already exists, which is fine
         return { user };
       }

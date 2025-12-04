@@ -10,12 +10,16 @@ import { NavAuthMenu } from "./nav-auth-menu";
 import { useAuthStatus } from "@/features/auth/model/use-auth-status";
 import { useAuth } from "@/features/auth/model/use-auth";
 
-export function Navbar() {
+type NavbarProps = {
+    initialAuth?: boolean;
+};
+
+export function Navbar({ initialAuth = false }: NavbarProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
     const theme = useSelector((state: RootState) => state.theme?.theme || "light");
     const dispatch = useDispatch();
-    const { isAuthenticated } = useAuthStatus();
+    const { isAuthenticated } = useAuthStatus(initialAuth);
     const { logout } = useAuth();
 
     useEffect(() => {
@@ -42,7 +46,7 @@ export function Navbar() {
                             </span>
                         </Link>
                         <div className="hidden md:flex items-center gap-6">
-                            <NavAuthMenu initialAuth={isAuthenticated} />
+                            <NavAuthMenu isAuthenticated={shouldShowAuthMenu} onLogout={handleLogout} />
                             <button
                                 onClick={() => dispatch(toggleTheme())}
                                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -76,7 +80,7 @@ export function Navbar() {
                     </Link>
 
                     <div className="hidden md:flex items-center gap-6">
-                        <NavAuthMenu initialAuth={shouldShowAuthMenu} />
+                        <NavAuthMenu isAuthenticated={shouldShowAuthMenu} onLogout={handleLogout} />
                         <button
                             onClick={() => dispatch(toggleTheme())}
                             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"

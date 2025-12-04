@@ -41,7 +41,7 @@ export default async function RootLayout({children}: {children: React.ReactNode}
             <body className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors" suppressHydrationWarning>
                 <Providers>
                     <ToastProvider>
-                        <Navbar />
+                        <Navbar initialAuth={initialAuth} />
                         <main suppressHydrationWarning>{children}</main>
                         <ToastContainer />
                     </ToastProvider>

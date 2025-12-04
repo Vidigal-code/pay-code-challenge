@@ -4,13 +4,18 @@ import request from "supertest";
 import cookieParser from "cookie-parser";
 import { AppModule } from "../../app.module";
 import { PrismaService } from "@infrastructure/prisma/prisma.service";
-import { getTestDatabaseUrl, waitForDatabase, cleanupTestData, checkTablesExist, runMigrations } from "../setup/test-helpers";
+import {
+  getTestDatabaseUrl,
+  waitForDatabase,
+  cleanupTestData,
+  checkTablesExist,
+  runMigrations,
+} from "../setup/test-helpers";
 
 describe("Wallet Integration Tests (e2e)", () => {
   let app: INestApplication | null = null;
   let prisma: PrismaService | null = null;
   let authToken: string;
-  let userId: string;
   let user2Id: string;
   let dbAvailable = false;
 
@@ -86,7 +91,7 @@ describe("Wallet Integration Tests (e2e)", () => {
 
     app = moduleFixture.createNestApplication();
     prisma = moduleFixture.get<PrismaService>(PrismaService);
-    
+
     try {
       const dbReady = await waitForDatabase(prisma, 30);
       if (!dbReady) {
@@ -94,12 +99,12 @@ describe("Wallet Integration Tests (e2e)", () => {
         dbAvailable = false;
         return;
       }
-      
+
       const tablesExist = await checkTablesExist(prisma);
       if (!tablesExist) {
         console.log("Database tables not found. Running migrations...");
         await runMigrations();
-        
+
         const tablesExistAfter = await checkTablesExist(prisma);
         if (!tablesExistAfter) {
           console.error("Migrations failed - tables still don't exist");
@@ -108,25 +113,31 @@ describe("Wallet Integration Tests (e2e)", () => {
         }
         console.log("Migrations completed successfully");
       }
-      
+
       app.use(cookieParser());
       app.enableCors({
         origin: ["http://localhost:3000"],
         credentials: true,
       });
-      app.useGlobalPipes(new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: false,
-        transform: true,
-        transformOptions: {
-          enableImplicitConversion: true,
-        },
-      }));
-      
+      app.useGlobalPipes(
+        new ValidationPipe({
+          whitelist: true,
+          forbidNonWhitelisted: false,
+          transform: true,
+          transformOptions: {
+            enableImplicitConversion: true,
+          },
+        }),
+      );
+
       await app.init();
       dbAvailable = true;
     } catch (error: any) {
-      if (error?.message?.includes("Can't reach database server") || error?.code === "ECONNREFUSED" || error?.code === "P1001") {
+      if (
+        error?.message?.includes("Can't reach database server") ||
+        error?.code === "ECONNREFUSED" ||
+        error?.code === "P1001"
+      ) {
         console.warn("Database not available, skipping integration tests");
         dbAvailable = false;
         return;
@@ -146,7 +157,7 @@ describe("Wallet Integration Tests (e2e)", () => {
         await cleanupTestData(prisma);
         await app.close();
       } catch (error: any) {
-        if (error?.code !== 'P2021') {
+        if (error?.code !== "P2021") {
           console.warn("Error cleaning up test data:", error);
         }
       }
@@ -167,12 +178,11 @@ describe("Wallet Integration Tests (e2e)", () => {
 
       expect(response.body).toHaveProperty("id");
       expect(response.body.email).toBe("test@example.com");
-      userId = response.body.id;
     });
 
     it("should login and get auth token", async () => {
       if (skipIfNoDb()) return;
-     
+
       const signupResponse = await request(app!.getHttpServer())
         .post("/auth/signup")
         .send({
@@ -180,11 +190,13 @@ describe("Wallet Integration Tests (e2e)", () => {
           name: "Test User",
           password: "password123",
         });
-      
+
       if (signupResponse.status !== 201 && signupResponse.status !== 409) {
-        throw new Error(`Signup failed: ${signupResponse.status} - ${JSON.stringify(signupResponse.body)}`);
+        throw new Error(
+          `Signup failed: ${signupResponse.status} - ${JSON.stringify(signupResponse.body)}`,
+        );
       }
-      
+
       const response = await request(app!.getHttpServer())
         .post("/auth/login")
         .send({
@@ -195,8 +207,14 @@ describe("Wallet Integration Tests (e2e)", () => {
 
       expect(response.headers["set-cookie"]).toBeDefined();
       const cookies = response.headers["set-cookie"];
-      const cookieArray = Array.isArray(cookies) ? cookies : cookies ? [cookies] : [];
-      const tokenCookie = cookieArray.find((c: string) => c.includes("paycode_session"));
+      const cookieArray = Array.isArray(cookies)
+        ? cookies
+        : cookies
+          ? [cookies]
+          : [];
+      const tokenCookie = cookieArray.find((c: string) =>
+        c.includes("paycode_session"),
+      );
       expect(tokenCookie).toBeDefined();
     });
 
@@ -218,7 +236,7 @@ describe("Wallet Integration Tests (e2e)", () => {
   describe("Wallet Operations", () => {
     beforeEach(async () => {
       if (skipIfNoDb()) return;
-    
+
       let loginResponse = await request(app!.getHttpServer())
         .post("/auth/login")
         .send({
@@ -234,11 +252,13 @@ describe("Wallet Integration Tests (e2e)", () => {
             name: "Test User",
             password: "password123",
           });
-        
+
         if (signupResponse.status !== 201 && signupResponse.status !== 409) {
-          throw new Error(`Signup failed: ${signupResponse.status} - ${JSON.stringify(signupResponse.body)}`);
+          throw new Error(
+            `Signup failed: ${signupResponse.status} - ${JSON.stringify(signupResponse.body)}`,
+          );
         }
-        
+
         loginResponse = await request(app!.getHttpServer())
           .post("/auth/login")
           .send({
@@ -248,13 +268,22 @@ describe("Wallet Integration Tests (e2e)", () => {
       }
 
       if (loginResponse.status !== 200) {
-        throw new Error(`Login failed: ${loginResponse.status} - ${JSON.stringify(loginResponse.body)}`);
+        throw new Error(
+          `Login failed: ${loginResponse.status} - ${JSON.stringify(loginResponse.body)}`,
+        );
       }
 
       const cookies = loginResponse.headers["set-cookie"];
-      const cookieArray = Array.isArray(cookies) ? cookies : cookies ? [cookies] : [];
-      authToken = cookieArray.find((c: string) => c.includes("paycode_session"))?.split(";")[0] || "";
-      
+      const cookieArray = Array.isArray(cookies)
+        ? cookies
+        : cookies
+          ? [cookies]
+          : [];
+      authToken =
+        cookieArray
+          .find((c: string) => c.includes("paycode_session"))
+          ?.split(";")[0] || "";
+
       if (!authToken) {
         throw new Error("Auth token not found in cookies");
       }
@@ -271,11 +300,12 @@ describe("Wallet Integration Tests (e2e)", () => {
           .get("/wallet")
           .set("Cookie", authToken)
           .expect(200);
-        
+
         expect(getResponse.body).toHaveProperty("wallet");
         expect(getResponse.body.wallet).toBeDefined();
         const wallet = getResponse.body.wallet;
-        const balance = wallet.balance !== undefined ? wallet.balance : wallet.props?.balance;
+        const balance =
+          wallet.balance !== undefined ? wallet.balance : wallet.props?.balance;
         expect(balance).toBeDefined();
         return;
       }
@@ -304,21 +334,24 @@ describe("Wallet Integration Tests (e2e)", () => {
         .post("/wallet/deposit")
         .set("Cookie", authToken)
         .send({
-          amount: 100.50,
+          amount: 100.5,
           description: "Test deposit",
         })
         .expect(200);
 
       expect(response.body).toHaveProperty("transaction");
       expect(response.body).toHaveProperty("wallet");
-      expect(response.body.wallet.balance).toBe(100.50);
+      expect(response.body.wallet.balance).toBe(100.5);
       expect(response.body.transaction.type).toBe("DEPOSIT");
       expect(response.body.transaction.status).toBe("COMPLETED");
     });
 
     it("should deposit even with negative balance", async () => {
       if (skipIfNoDb()) return;
-      const primaryUser = await ensureUserExists("test@example.com", "Test User");
+      const primaryUser = await ensureUserExists(
+        "test@example.com",
+        "Test User",
+      );
       await ensureWalletExists(authToken);
       await prisma!.wallet.update({
         where: { userId: primaryUser.id },
@@ -339,7 +372,10 @@ describe("Wallet Integration Tests (e2e)", () => {
 
     it("should transfer money to another user", async () => {
       if (skipIfNoDb()) return;
-      const receiver = await ensureUserExists("test2@example.com", "Test User 2");
+      const receiver = await ensureUserExists(
+        "test2@example.com",
+        "Test User 2",
+      );
       user2Id = receiver.id;
 
       await request(app!.getHttpServer())
@@ -367,7 +403,10 @@ describe("Wallet Integration Tests (e2e)", () => {
 
     it("should reject transfer with insufficient balance", async () => {
       if (skipIfNoDb()) return;
-      const receiver = await ensureUserExists("test2@example.com", "Test User 2");
+      const receiver = await ensureUserExists(
+        "test2@example.com",
+        "Test User 2",
+      );
       user2Id = receiver.id;
 
       const response = await request(app!.getHttpServer())
@@ -407,7 +446,7 @@ describe("Wallet Integration Tests (e2e)", () => {
 
       expect(depositResponse.body).toHaveProperty("transaction");
       expect(depositResponse.body.transaction).toBeDefined();
-      
+
       const transaction = depositResponse.body.transaction;
       const transactionId = transaction.id || transaction.props?.id;
       expect(transactionId).toBeDefined();
@@ -442,9 +481,7 @@ describe("Wallet Integration Tests (e2e)", () => {
   describe("Error Handling", () => {
     it("should return 401 for unauthenticated requests", async () => {
       if (skipIfNoDb()) return;
-      await request(app!.getHttpServer())
-        .get("/wallet")
-        .expect(401);
+      await request(app!.getHttpServer()).get("/wallet").expect(401);
     });
 
     it("should return 400 for invalid deposit amount", async () => {
@@ -458,8 +495,15 @@ describe("Wallet Integration Tests (e2e)", () => {
         });
 
       const cookies = loginResponse.headers["set-cookie"];
-      const cookieArray = Array.isArray(cookies) ? cookies : cookies ? [cookies] : [];
-      const token = cookieArray.find((c: string) => c.includes("paycode_session"))?.split(";")[0] || "";
+      const cookieArray = Array.isArray(cookies)
+        ? cookies
+        : cookies
+          ? [cookies]
+          : [];
+      const token =
+        cookieArray
+          .find((c: string) => c.includes("paycode_session"))
+          ?.split(";")[0] || "";
 
       await request(app!.getHttpServer())
         .post("/wallet/deposit")
@@ -469,4 +513,3 @@ describe("Wallet Integration Tests (e2e)", () => {
     });
   });
 });
-

@@ -1,3 +1,6 @@
+import { execSync } from "child_process";
+import * as path from "path";
+
 const sanitizeSchemaName = (schema: string): string => {
   return schema.replace(/[^a-zA-Z0-9_]/g, "_");
 };
@@ -30,7 +33,8 @@ const applySchemaToUrl = (databaseUrl: string, schema: string): string => {
 };
 
 export const getTestDatabaseUrl = (): string => {
-  const isDocker = process.env.DOCKER_ENV === "true" || process.env.CI === "true";
+  const isDocker =
+    process.env.DOCKER_ENV === "true" || process.env.CI === "true";
   const dbHost = isDocker ? "db" : "localhost";
   const schema = resolveTestSchema();
 
@@ -43,27 +47,36 @@ export const getTestDatabaseUrl = (): string => {
     }
     return applySchemaToUrl(url, schema);
   }
-  
+
   const baseUrl = `postgresql://postgres:postgres@${dbHost}:5432/paycode`;
   return applySchemaToUrl(baseUrl, schema);
 };
 
 export const getTestApiUrl = (): string => {
-  const isDocker = process.env.DOCKER_ENV === "true" || process.env.CI === "true";
-  return isDocker ? "http://api:4000" : (process.env.API_URL || "http://localhost:4000");
+  const isDocker =
+    process.env.DOCKER_ENV === "true" || process.env.CI === "true";
+  return isDocker
+    ? "http://api:4000"
+    : process.env.API_URL || "http://localhost:4000";
 };
 
-export const waitForDatabase = async (prisma: any, maxRetries = 30): Promise<boolean> => {
+export const waitForDatabase = async (
+  prisma: any,
+  maxRetries = 30,
+): Promise<boolean> => {
   for (let i = 0; i < maxRetries; i++) {
     try {
       await prisma.$queryRaw`SELECT 1`;
       return true;
     } catch (error: any) {
       if (i === maxRetries - 1) {
-        console.warn(`Database connection failed after ${maxRetries} attempts:`, error?.message);
+        console.warn(
+          `Database connection failed after ${maxRetries} attempts:`,
+          error?.message,
+        );
         return false;
       }
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
   }
   return false;
@@ -74,23 +87,20 @@ export const waitForDatabase = async (prisma: any, maxRetries = 30): Promise<boo
  */
 export const runMigrations = async (): Promise<void> => {
   try {
-    const { execSync } = require('child_process');
-    const path = require('path');
-    
-    const backendPath = path.resolve(__dirname, '../../..');
-    
-    execSync('npx prisma migrate deploy', {
+    const backendPath = path.resolve(__dirname, "../../..");
+
+    execSync("npx prisma migrate deploy", {
       cwd: backendPath,
-      stdio: 'pipe',
+      stdio: "pipe",
       env: {
         ...process.env,
         DATABASE_URL: process.env.DATABASE_URL || getTestDatabaseUrl(),
       },
     });
-    
-    console.log('Migrations executed successfully');
+
+    console.log("Migrations executed successfully");
   } catch (error: any) {
-    console.warn('Migration execution warning:', error?.message || error);
+    console.warn("Migration execution warning:", error?.message || error);
   }
 };
 
@@ -105,15 +115,17 @@ export const checkTablesExist = async (prisma: any): Promise<boolean> => {
     return true;
   } catch (error: any) {
     // Check for Prisma error code (P2021 = table does not exist)
-    if (error?.code === 'P2021') {
+    if (error?.code === "P2021") {
       return false; // Tables don't exist
     }
     // Check for PostgreSQL error code (42P01 = relation does not exist)
     // This can appear in meta.code or in the error message
-    if (error?.meta?.code === '42P01' || 
-        error?.code === '42P01' ||
-        (error?.message && error.message.includes('42P01')) ||
-        (error?.message && error.message.includes('does not exist'))) {
+    if (
+      error?.meta?.code === "42P01" ||
+      error?.code === "42P01" ||
+      (error?.message && error.message.includes("42P01")) ||
+      (error?.message && error.message.includes("does not exist"))
+    ) {
       return false; // Tables don't exist
     }
     throw error; // Other error, rethrow
@@ -125,30 +137,29 @@ export const checkTablesExist = async (prisma: any): Promise<boolean> => {
  */
 export const cleanupTestData = async (prisma: any): Promise<void> => {
   if (!prisma) return;
-  
+
   try {
     // Try to clean up in reverse order of dependencies
     await prisma.transaction.deleteMany({}).catch((error: any) => {
       // Ignore table not found errors (P2021)
-      if (error?.code !== 'P2021') {
+      if (error?.code !== "P2021") {
         throw error;
       }
     });
     await prisma.wallet.deleteMany({}).catch((error: any) => {
-      if (error?.code !== 'P2021') {
+      if (error?.code !== "P2021") {
         throw error;
       }
     });
     await prisma.user.deleteMany({}).catch((error: any) => {
-      if (error?.code !== 'P2021') {
+      if (error?.code !== "P2021") {
         throw error;
       }
     });
   } catch (error: any) {
     // Only log non-P2021 errors
-    if (error?.code !== 'P2021') {
+    if (error?.code !== "P2021") {
       console.warn("Error cleaning up test data:", error);
     }
   }
 };
-

@@ -45,7 +45,6 @@ export class InMemoryUserRepository implements UserRepository {
   async deleteById(id: string): Promise<void> {
     this.items = this.items.filter((u) => u.id !== id);
   }
-
 }
 
 export class FakeHashingService {
@@ -59,13 +58,16 @@ export class FakeHashingService {
 }
 
 export class FakeDomainEventsService {
-  async publish(_: any): Promise<void> {}
+  async publish(event: any): Promise<void> {
+    void event;
+  }
 }
 
 export class AlwaysTrueEmailValidationService
   implements EmailValidationService
 {
-  async exists(_email: string): Promise<boolean> {
+  async exists(email: string): Promise<boolean> {
+    void email;
     return true;
   }
 }

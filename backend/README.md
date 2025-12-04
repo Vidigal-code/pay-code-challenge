@@ -19,12 +19,14 @@ Backend da aplicação PAYCODE, uma plataforma fintech para carteiras digitais c
 ## 🛠 Tecnologias
 
 ### Core
+
 - **NestJS** 10.4.5 - Framework Node.js
 - **TypeScript** 5.5.4 - Linguagem
 - **Prisma** 5.22.0 - ORM
 - **PostgreSQL** - Banco de dados
 
 ### Autenticação & Segurança
+
 - **JWT** (JSON Web Tokens) - Autenticação
 - **JWE** (JSON Web Encryption) - Criptografia de payload
 - **JWKS** (JSON Web Key Set) - Rotação de chaves
@@ -33,11 +35,13 @@ Backend da aplicação PAYCODE, uma plataforma fintech para carteiras digitais c
 - **express-rate-limit** - Rate limiting
 
 ### Mensageria & Cache
+
 - **RabbitMQ** - Message broker
 - **Redis** - Cache e idempotência
 - **Socket.io** - WebSockets
 
 ### Observabilidade
+
 - **Pino** - Logging estruturado
 - **Prometheus** - Métricas
 - **Swagger** - Documentação da API
@@ -69,24 +73,29 @@ backend/src/
 ### Domain Layer (`domain/`)
 
 **Entidades:**
+
 - `entities/user.entity.ts` - Entidade de usuário
 - `entities/wallet.entity.ts` - Entidade de carteira
 - `entities/transaction.entity.ts` - Entidade de transação
 
 **Value Objects:**
+
 - `value-objects/email.vo.ts` - Value object para email
 
 **Repositories (Interfaces):**
+
 - `repositories/user.repository.ts` - Interface do repositório de usuários
 - `repositories/wallet.repository.ts` - Interface do repositório de carteiras
 - `repositories/transaction.repository.ts` - Interface do repositório de transações
 
 **Services:**
+
 - `services/domain-events.service.ts` - Serviço de eventos de domínio
 
 ### Application Layer (`application/`)
 
 **Use Cases:**
+
 - `use-cases/signup.usecase.ts` - Cadastro de usuário
 - `use-cases/login.usecase.ts` - Autenticação
 - `use-cases/create-wallet.usecase.ts` - Criação de carteira
@@ -99,6 +108,7 @@ backend/src/
 - `use-cases/delete-account.usecase.ts` - Exclusão de conta
 
 **DTOs:**
+
 - `dto/signup.dto.ts` - DTO de cadastro
 - `dto/login.dto.ts` - DTO de login
 - `dto/deposit.dto.ts` - DTO de depósito
@@ -108,27 +118,32 @@ backend/src/
 - `dto/error.response.dto.ts` - DTO de erro
 
 **Ports (Interfaces):**
+
 - `ports/hashing.service.ts` - Interface de hash de senhas
 - `ports/email-validation.service.ts` - Interface de validação de email
 - `ports/invite-token.service.ts` - Interface de tokens de convite
 
 **Errors:**
+
 - `errors/application-error.ts` - Erro de aplicação
 - `errors/error-code.ts` - Códigos de erro
 
 **Success:**
+
 - `success/success-code.ts` - Códigos de sucesso
 - `success/success-message.ts` - Mensagens de sucesso
 
 ### Infrastructure Layer (`infrastructure/`)
 
 **Prisma (Repositories):**
+
 - `prisma/prisma.service.ts` - Serviço Prisma
 - `prisma/user.prisma.repository.ts` - Implementação do repositório de usuários
 - `prisma/wallet.prisma.repository.ts` - Implementação do repositório de carteiras
 - `prisma/transaction.prisma.repository.ts` - Implementação do repositório de transações
 
 **Auth:**
+
 - `auth/jwt.strategy.ts` - Estratégia JWT do Passport
 - `auth/jwe.service.ts` - Serviço JWE (criptografia)
 - `auth/jwks.service.ts` - Serviço JWKS (rotação de chaves)
@@ -137,6 +152,7 @@ backend/src/
 - `auth/sensitive-data-jwe.service.ts` - JWE para dados sensíveis
 
 **Messaging:**
+
 - `messaging/rabbitmq.service.ts` - Serviço RabbitMQ
 - `messaging/rabbitmq-publisher.service.ts` - Publicador de mensagens
 - `messaging/base-consumer.ts` - Consumidor base
@@ -145,43 +161,53 @@ backend/src/
 - `messaging/domain-events.service.ts` - Serviço de eventos de domínio
 
 **Redis:**
+
 - `redis/idempotency.service.ts` - Serviço de idempotência
 
 **Cache:**
+
 - `cache/redis-email-validation.service.ts` - Validação de email com cache
 
 ### Interfaces Layer (`interfaces/`)
 
 **HTTP Controllers:**
+
 - `http/auth.controller.ts` - Controller de autenticação
 - `http/wallet.controller.ts` - Controller de carteira
 - `http/jwks.controller.ts` - Controller JWKS
 
 **WebSocket:**
+
 - `websocket/financial-events.gateway.ts` - Gateway de eventos financeiros
 
 **Consumers:**
+
 - `consumers/financial-events.consumer.ts` - Consumidor de eventos financeiros
 - `consumers/base.resilient.consumer.ts` - Consumidor resiliente base
 
 ### Common (`common/`)
 
 **Guards:**
+
 - `guards/jwt.guard.ts` - Guard de autenticação JWT
 - `guards/owasp-security.guard.ts` - Guard de segurança OWASP
 
 **Interceptors:**
+
 - `interceptors/bigint-serialization.interceptor.ts` - Serialização de BigInt
 - `interceptors/exception.interceptor.ts` - Interceptor de exceções
 - `interceptors/success-code.interceptor.ts` - Interceptor de códigos de sucesso
 
 **Filters:**
+
 - `filters/all-exceptions.filter.ts` - Filtro global de exceções
 
 **Decorators:**
+
 - `decorators/current-user.decorator.ts` - Decorator para usuário atual
 
 **Utils:**
+
 - `utils/password.util.ts` - Utilitários de senha
 
 ### Modules (`modules/`)
@@ -201,6 +227,7 @@ backend/src/
 ## ✨ Funcionalidades
 
 ### Autenticação
+
 - ✅ Cadastro de usuários com validação de email
 - ✅ Login com JWT/JWE
 - ✅ Atualização de perfil
@@ -208,6 +235,7 @@ backend/src/
 - ✅ Rotação automática de chaves (JWKS)
 
 ### Carteira
+
 - ✅ Criação automática de carteira no cadastro
 - ✅ Consulta de saldo
 - ✅ Depósito de dinheiro
@@ -216,6 +244,7 @@ backend/src/
 - ✅ Depósito adiciona mesmo com saldo negativo
 
 ### Transações
+
 - ✅ Listagem de transações com paginação
 - ✅ Filtros por tipo e status
 - ✅ Reversão de transações (depósitos e transferências)
@@ -223,6 +252,7 @@ backend/src/
 - ✅ Rastreabilidade completa
 
 ### Dashboard
+
 - ✅ KPIs financeiros
 - ✅ Total de depósitos
 - ✅ Total de transferências enviadas/recebidas
@@ -232,39 +262,39 @@ backend/src/
 
 ### Autenticação (`/auth`)
 
-| Método | Endpoint | Descrição | Autenticação |
-|--------|----------|-----------|--------------|
-| POST | `/auth/signup` | Criar conta | ❌ |
-| POST | `/auth/login` | Login | ❌ |
-| GET | `/auth/profile` | Obter perfil | ✅ |
-| POST | `/auth/profile` | Atualizar perfil | ✅ |
-| POST | `/auth/logout` | Logout | ✅ |
-| DELETE | `/auth/account` | Excluir conta | ✅ |
+| Método | Endpoint        | Descrição        | Autenticação |
+| ------ | --------------- | ---------------- | ------------ |
+| POST   | `/auth/signup`  | Criar conta      | ❌           |
+| POST   | `/auth/login`   | Login            | ❌           |
+| GET    | `/auth/profile` | Obter perfil     | ✅           |
+| POST   | `/auth/profile` | Atualizar perfil | ✅           |
+| POST   | `/auth/logout`  | Logout           | ✅           |
+| DELETE | `/auth/account` | Excluir conta    | ✅           |
 
 ### Carteira (`/wallet`)
 
-| Método | Endpoint | Descrição | Autenticação |
-|--------|----------|-----------|--------------|
-| POST | `/wallet` | Criar carteira | ✅ |
-| GET | `/wallet` | Obter carteira | ✅ |
-| POST | `/wallet/deposit` | Depositar dinheiro | ✅ |
-| POST | `/wallet/transfer` | Transferir dinheiro | ✅ |
-| POST | `/wallet/transactions/:id/reverse` | Reverter transação | ✅ |
-| GET | `/wallet/transactions` | Listar transações | ✅ |
-| GET | `/wallet/dashboard/kpis` | Obter KPIs | ✅ |
+| Método | Endpoint                           | Descrição           | Autenticação |
+| ------ | ---------------------------------- | ------------------- | ------------ |
+| POST   | `/wallet`                          | Criar carteira      | ✅           |
+| GET    | `/wallet`                          | Obter carteira      | ✅           |
+| POST   | `/wallet/deposit`                  | Depositar dinheiro  | ✅           |
+| POST   | `/wallet/transfer`                 | Transferir dinheiro | ✅           |
+| POST   | `/wallet/transactions/:id/reverse` | Reverter transação  | ✅           |
+| GET    | `/wallet/transactions`             | Listar transações   | ✅           |
+| GET    | `/wallet/dashboard/kpis`           | Obter KPIs          | ✅           |
 
 ### Segurança (`/.well-known`)
 
-| Método | Endpoint | Descrição | Autenticação |
-|--------|----------|-----------|--------------|
-| GET | `/.well-known/jwks.json` | JWKS endpoint | ❌ |
+| Método | Endpoint                 | Descrição     | Autenticação |
+| ------ | ------------------------ | ------------- | ------------ |
+| GET    | `/.well-known/jwks.json` | JWKS endpoint | ❌           |
 
 ### Observabilidade
 
-| Método | Endpoint | Descrição | Autenticação |
-|--------|----------|-----------|--------------|
-| GET | `/health` | Health check | ❌ |
-| GET | `/metrics` | Métricas Prometheus | ❌ |
+| Método | Endpoint   | Descrição           | Autenticação |
+| ------ | ---------- | ------------------- | ------------ |
+| GET    | `/health`  | Health check        | ❌           |
+| GET    | `/metrics` | Métricas Prometheus | ❌           |
 
 ## ⚙️ Configuração
 
@@ -368,10 +398,12 @@ npm test -- auth.integration.spec.ts
 ```
 
 **Testes de Integração Disponíveis:**
+
 - `wallet.integration.spec.ts` - Testes E2E de operações de carteira (deposit, transfer, reverse, KPIs)
 - `auth.integration.spec.ts` - Testes E2E de autenticação (signup, login, profile)
 
 **Cobertura de Testes:**
+
 - ✅ Testes unitários para Use Cases (deposit, transfer, reverse, signup)
 - ✅ Testes de integração para fluxos completos (auth, wallet)
 - ✅ Testes de componentes e serviços (base-consumer, idempotency)
@@ -381,6 +413,7 @@ npm test -- auth.integration.spec.ts
 ### Problema: PRECONDITION-FAILED ao criar filas
 
 Se você encontrar erros como:
+
 ```
 PRECONDITION_FAILED - inequivalent arg 'x-dead-letter-exchange' for queue 'financial_events'
 ```
@@ -388,6 +421,7 @@ PRECONDITION_FAILED - inequivalent arg 'x-dead-letter-exchange' for queue 'finan
 Isso significa que as filas já existem no RabbitMQ com configurações diferentes. Para resolver:
 
 **Opção 1: Limpar filas via script (recomendado)**
+
 ```bash
 # Via Node.js (requer amqplib instalado)
 cd backend
@@ -395,6 +429,7 @@ node scripts/clean-rabbitmq-queues.js
 ```
 
 **Opção 2: Via RabbitMQ Management UI**
+
 1. Acesse http://localhost:15672 (guest/guest)
 2. Vá em "Queues"
 3. Delete as filas: `financial_events`, `financial_events.dlq`, `audit.logs`, `audit.logs.dlq`
@@ -404,6 +439,7 @@ node scripts/clean-rabbitmq-queues.js
 O código foi atualizado para verificar se a fila existe antes de tentar criá-la com dead-letter. Se a fila existir sem dead-letter, ela será usada normalmente (apenas sem funcionalidade de DLQ).
 
 ### Verificar status das filas
+
 ```bash
 docker compose exec rabbitmq rabbitmqctl list_queues name arguments
 ```
@@ -416,7 +452,7 @@ docker compose exec rabbitmq rabbitmqctl list_queues name arguments
 - ✅ **JWKS**: Rotação automática de chaves (24 horas)
 - ✅ **KMS**: Gerenciamento seguro de chaves (pronto para AWS/GCP)
 - ✅ **OWASP API Security**: Proteções contra vulnerabilidades
-- ✅ **Rate Limiting**: 
+- ✅ **Rate Limiting**:
   - Geral: 30 req/min
   - Transações: 10 req/min
 - ✅ **Helmet**: Headers de segurança HTTP
@@ -454,6 +490,7 @@ npx prisma migrate deploy
 ## 📚 Documentação
 
 A documentação Swagger está disponível em:
+
 - **Desenvolvimento**: `http://localhost:4000/api`
 
 ## 🏛 Padrões Arquiteturais
@@ -478,6 +515,7 @@ A documentação Swagger está disponível em:
 ## 📝 Logs
 
 O sistema usa **Pino** para logging estruturado:
+
 - Logs em JSON (produção)
 - Logs formatados (desenvolvimento)
 - Níveis: error, warn, log, debug
@@ -489,4 +527,3 @@ O sistema usa **Pino** para logging estruturado:
 - [ ] Relatórios financeiros
 - [ ] Exportação de transações
 - [ ] Integração com gateways de pagamento
-

@@ -16,9 +16,12 @@ export class WalletPrismaRepository implements WalletRepository {
 
   async create(data: CreateWalletInput): Promise<Wallet> {
     try {
-      const balance = data.balance !== undefined 
-        ? (typeof data.balance === 'string' ? parseFloat(data.balance) : Number(data.balance))
-        : 0;
+      const balance =
+        data.balance !== undefined
+          ? typeof data.balance === "string"
+            ? parseFloat(data.balance)
+            : Number(data.balance)
+          : 0;
       const wallet = await this.prisma.wallet.create({
         data: {
           userId: data.userId,
@@ -27,16 +30,24 @@ export class WalletPrismaRepository implements WalletRepository {
       });
       return this.toDomain(wallet);
     } catch (error: any) {
-      if (error.code === 'P2002') {
+      if (error.code === "P2002") {
         // Wallet already exists - convert to ApplicationError
-        throw new ApplicationError(ErrorCode.WALLET_ALREADY_EXISTS, `Wallet already exists for user ${data.userId}`);
+        throw new ApplicationError(
+          ErrorCode.WALLET_ALREADY_EXISTS,
+          `Wallet already exists for user ${data.userId}`,
+        );
       }
       // P2003 is foreign key constraint violation - user doesn't exist
-      if (error.code === 'P2003') {
-        throw new ApplicationError(ErrorCode.USER_NOT_FOUND, `User ${data.userId} does not exist - cannot create wallet`);
+      if (error.code === "P2003") {
+        throw new ApplicationError(
+          ErrorCode.USER_NOT_FOUND,
+          `User ${data.userId} does not exist - cannot create wallet`,
+        );
       }
       const errorMessage = error?.message || "Database error";
-      throw new Error(`Failed to create wallet for user ${data.userId}: ${errorMessage}`);
+      throw new Error(
+        `Failed to create wallet for user ${data.userId}: ${errorMessage}`,
+      );
     }
   }
 
@@ -59,9 +70,10 @@ export class WalletPrismaRepository implements WalletRepository {
       throw new Error("Balance is required for wallet update");
     }
     try {
-      const balance = typeof data.balance === 'string' 
-        ? parseFloat(data.balance) 
-        : Number(data.balance);
+      const balance =
+        typeof data.balance === "string"
+          ? parseFloat(data.balance)
+          : Number(data.balance);
       const wallet = await this.prisma.wallet.update({
         where: { id: data.id },
         data: {
@@ -70,7 +82,7 @@ export class WalletPrismaRepository implements WalletRepository {
       });
       return this.toDomain(wallet);
     } catch (error: any) {
-      if (error.code === 'P2025') {
+      if (error.code === "P2025") {
         throw new Error(`Wallet not found: ${data.id}`);
       }
       const errorMessage = error?.message || "Database error";
@@ -83,9 +95,10 @@ export class WalletPrismaRepository implements WalletRepository {
   }
 
   private toDomain(record: any): Wallet {
-    const balance = typeof record.balance === 'string' 
-      ? parseFloat(record.balance) 
-      : Number(record.balance);
+    const balance =
+      typeof record.balance === "string"
+        ? parseFloat(record.balance)
+        : Number(record.balance);
     return Wallet.create({
       id: record.id,
       userId: record.userId,

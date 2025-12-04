@@ -35,13 +35,19 @@ export class UserPrismaRepository implements UserRepository {
           await this.prisma.user.delete({ where: { id: userId } });
         } catch (deleteError) {
           // If deletion fails, log but don't throw - the original error is more important
-          console.error(`Failed to clean up user ${userId} after toDomain error:`, deleteError);
+          console.error(
+            `Failed to clean up user ${userId} after toDomain error:`,
+            deleteError,
+          );
         }
         throw domainError; // Re-throw the original domain error
       }
     } catch (error: any) {
-      if (error.code === 'P2002') {
-        throw new ApplicationError(ErrorCode.EMAIL_ALREADY_IN_USE, "Email already in use");
+      if (error.code === "P2002") {
+        throw new ApplicationError(
+          ErrorCode.EMAIL_ALREADY_IN_USE,
+          "Email already in use",
+        );
       }
       throw error;
     }
@@ -88,7 +94,7 @@ export class UserPrismaRepository implements UserRepository {
       });
       return this.toDomain(user);
     } catch (error: any) {
-      if (error.code === 'P2025') {
+      if (error.code === "P2025") {
         throw new ApplicationError(ErrorCode.USER_NOT_FOUND, "User not found");
       }
       throw error;
@@ -113,7 +119,10 @@ export class UserPrismaRepository implements UserRepository {
       });
     } catch (error: any) {
       if (error.message === "INVALID_EMAIL") {
-        throw new ApplicationError(ErrorCode.INVALID_EMAIL, "Invalid email format");
+        throw new ApplicationError(
+          ErrorCode.INVALID_EMAIL,
+          "Invalid email format",
+        );
       }
       throw error;
     }

@@ -68,9 +68,8 @@ export class TransferUseCase {
       });
     }
 
-    let receiverWallet = await this.walletRepository.findByUserId(
-      actualReceiverId,
-    );
+    let receiverWallet =
+      await this.walletRepository.findByUserId(actualReceiverId);
     if (!receiverWallet) {
       receiverWallet = await this.walletRepository.create({
         userId: actualReceiverId,
@@ -80,7 +79,7 @@ export class TransferUseCase {
 
     const senderBalance = Number(senderWallet.balance);
     const transferAmount = Number(input.amount);
-    
+
     const senderWalletEntity = Wallet.create({
       id: senderWallet.id,
       userId: senderWallet.userId,
@@ -91,7 +90,9 @@ export class TransferUseCase {
 
     // Validate balance before transfer
     if (!senderWalletEntity.canWithdraw(transferAmount)) {
-      this.logger.warn(`Insufficient balance: ${senderBalance} < ${transferAmount} for user ${input.senderId}`);
+      this.logger.warn(
+        `Insufficient balance: ${senderBalance} < ${transferAmount} for user ${input.senderId}`,
+      );
       throw new ApplicationError("INSUFFICIENT_BALANCE");
     }
 
@@ -253,7 +254,10 @@ export class TransferUseCase {
           });
         }
       } catch (rollbackError: any) {
-        this.logger.error(`Rollback failed for transfer ${transaction.id}:`, rollbackError?.message || rollbackError);
+        this.logger.error(
+          `Rollback failed for transfer ${transaction.id}:`,
+          rollbackError?.message || rollbackError,
+        );
         this.logger.error(`Rollback error details:`, rollbackError);
       }
 

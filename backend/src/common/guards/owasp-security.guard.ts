@@ -8,7 +8,7 @@ import { Request } from "express";
 
 /**
  * OWASP API Security Guard
- * Implementa proteções contra vulnerabilidades comuns da OWASP 
+ * Implementa proteções contra vulnerabilidades comuns da OWASP
  */
 @Injectable()
 export class OWASPSecurityGuard implements CanActivate {
@@ -114,6 +114,7 @@ export class OWASPSecurityGuard implements CanActivate {
   }
 
   private validateFunctionLevelAuthorization(request: Request) {
+    void request;
     // Valida que usuário tem permissão para a função
     // Implementação específica por endpoint
     // Por enquanto, apenas valida autenticação
@@ -173,6 +174,7 @@ export class OWASPSecurityGuard implements CanActivate {
   }
 
   private validateAPIConsumption(request: Request) {
+    void request;
     // Valida que dados externos são sanitizados
     // Implementação específica por endpoint
   }

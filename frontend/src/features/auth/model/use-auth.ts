@@ -7,6 +7,18 @@ import { authApi } from '../api/auth.api';
 import { authQueryKeys } from './query-keys';
 import type { LoginRequest, SignupRequest } from '../api/auth.api';
 
+const AUTH_HINT_STORAGE_KEY = 'paycode_auth_hint';
+
+const setAuthHint = (isAuthenticated: boolean) => {
+    if (typeof window === 'undefined') return;
+    if (isAuthenticated) {
+        window.localStorage.setItem(AUTH_HINT_STORAGE_KEY, 'true');
+    } else {
+        window.localStorage.removeItem(AUTH_HINT_STORAGE_KEY);
+    }
+    window.dispatchEvent(new Event('auth-changed'));
+};
+
 export function useAuth() {
     const queryClient = useQueryClient();
     const router = useRouter();
@@ -16,6 +28,7 @@ export function useAuth() {
         onSuccess: () => {
             queryClient.setQueryData(authQueryKeys.status(), true);
             queryClient.invalidateQueries({ queryKey: authQueryKeys.all });
+            setAuthHint(true);
         },
     });
 
@@ -24,6 +37,7 @@ export function useAuth() {
         onSuccess: () => {
             queryClient.setQueryData(authQueryKeys.status(), true);
             queryClient.invalidateQueries({ queryKey: authQueryKeys.all });
+            setAuthHint(true);
         },
     });
 
@@ -33,6 +47,7 @@ export function useAuth() {
             queryClient.setQueryData(authQueryKeys.status(), false);
             queryClient.clear();
             router.push('/login');
+            setAuthHint(false);
         },
     });
 

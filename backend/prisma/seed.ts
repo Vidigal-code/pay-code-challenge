@@ -1,4 +1,4 @@
-const { PrismaClient } = require("@prisma/client");
+import { PrismaClient } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -19,39 +19,25 @@ async function main() {
     },
   });
 
-  let company = await prisma.company.findFirst({ where: { name: "Acme Corp" } });
-  if (!company) {
-    company = await prisma.company.create({
-      data: {
-        name: "Acme Corp",
-        memberships: {
-          create: { userId: owner.id, role: "OWNER" },
-        },
-      },
-    });
-  }
-
-  await prisma.user.update({
-    where: { id: owner.id },
-    data: { activeCompanyId: company.id },
+  const wallet = await prisma.wallet.upsert({
+    where: { userId: owner.id },
+    update: {},
+    create: {
+      userId: owner.id,
+      balance: 1000,
+    },
   });
 
-  await prisma.invite.upsert({
-    where: { token: "seed-token" },
-    update: {
-      companyId: company.id,
-      email: "member@example.com",
-  role: "MEMBER",
-  status: "PENDING",
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    },
+  await prisma.transaction.upsert({
+    where: { id: "seed-transaction" },
+    update: {},
     create: {
-      companyId: company.id,
-      email: "member@example.com",
-  role: "MEMBER",
-      token: "seed-token",
-  status: "PENDING",
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      id: "seed-transaction",
+      walletId: wallet.id,
+      amount: 1000,
+      type: "DEPOSIT",
+      status: "COMPLETED",
+      description: "Initial deposit",
     },
   });
 

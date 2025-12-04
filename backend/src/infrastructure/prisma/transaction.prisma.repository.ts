@@ -59,7 +59,7 @@ export class TransactionPrismaRepository implements TransactionRepository {
       });
       return this.toDomain(transaction);
     } catch (error: any) {
-      if (error.code === 'P2025') {
+      if (error.code === "P2025") {
         throw new Error("Transaction not found");
       }
       throw error;

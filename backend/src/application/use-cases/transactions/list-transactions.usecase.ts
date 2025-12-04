@@ -35,7 +35,8 @@ export class ListTransactionsUseCase {
     }
 
     const page = input.page && input.page > 0 ? input.page : 1;
-    const pageSize = input.pageSize && input.pageSize > 0 ? Math.min(input.pageSize, 100) : 10;
+    const pageSize =
+      input.pageSize && input.pageSize > 0 ? Math.min(input.pageSize, 100) : 10;
 
     const type = input.type
       ? (input.type.toUpperCase() as TransactionType)
@@ -64,12 +65,14 @@ export class ListTransactionsUseCase {
     const enrichedTransactions = await Promise.all(
       result.transactions.map(async (transaction) => {
         const transactionData = transaction.toJSON();
-        
+
         let senderInfo = null;
         let receiverInfo = null;
 
         if (transaction.senderId) {
-          const sender = await this.userRepository.findById(transaction.senderId);
+          const sender = await this.userRepository.findById(
+            transaction.senderId,
+          );
           if (sender) {
             senderInfo = {
               id: sender.id,
@@ -80,7 +83,9 @@ export class ListTransactionsUseCase {
         }
 
         if (transaction.receiverId) {
-          const receiver = await this.userRepository.findById(transaction.receiverId);
+          const receiver = await this.userRepository.findById(
+            transaction.receiverId,
+          );
           if (receiver) {
             receiverInfo = {
               id: receiver.id,
@@ -95,7 +100,7 @@ export class ListTransactionsUseCase {
           sender: senderInfo,
           receiver: receiverInfo,
         };
-      })
+      }),
     );
 
     return {

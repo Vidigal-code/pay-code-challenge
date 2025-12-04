@@ -3,9 +3,9 @@
 import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useSelector } from 'react-redux';
-import { useAuth } from '../hooks/useAuth';
-import { useAuthStatus } from '../hooks/useAuthStatus';
-import { RootState } from '../store';
+import { useAuth } from '@/hooks/useAuth';
+import { useAuthStatus } from '@/hooks/useAuthStatus';
+import { RootState } from '@/store';
 import { FiLayout, FiCreditCard, FiUser, FiLogOut, FiLogIn, FiUserPlus } from 'react-icons/fi';
 
 export default function NavAuthMenu({ initialAuth }: { initialAuth: boolean }) {

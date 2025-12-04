@@ -122,7 +122,7 @@ export class ReverseTransactionUseCase {
 
           // Reversão: devolve o dinheiro ao sender e retira do receiver
           senderWalletEntity.deposit(originalTransaction.amount);
-          
+
           // Para reversão, sempre retira do receiver (mesmo que fique negativo)
           // O depósito deve adicionar ao valor se estiver negativo
           receiverWalletEntity.withdraw(originalTransaction.amount);

@@ -31,7 +31,10 @@
   "include": [
     "next-env.d.ts",
     "src",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "jest.config.ts",
+    "jest.setup.ts",
+    "tailwind.config.ts"
   ],
   "exclude": [
     "node_modules"

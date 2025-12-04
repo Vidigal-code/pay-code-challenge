@@ -31,7 +31,7 @@ export class BigIntSerializationInterceptor implements NestInterceptor {
       if (typeof data.toJSON === "function") {
         return this.serializeBigInts(data.toJSON());
       }
-      
+
       const serialized = { ...data };
       for (const key in serialized) {
         if (serialized.hasOwnProperty(key)) {

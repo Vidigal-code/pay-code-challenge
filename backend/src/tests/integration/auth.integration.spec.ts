@@ -4,7 +4,13 @@ import request from "supertest";
 import cookieParser from "cookie-parser";
 import { AppModule } from "../../app.module";
 import { PrismaService } from "@infrastructure/prisma/prisma.service";
-import { getTestDatabaseUrl, waitForDatabase, cleanupTestData, checkTablesExist, runMigrations } from "../setup/test-helpers";
+import {
+  getTestDatabaseUrl,
+  waitForDatabase,
+  cleanupTestData,
+  checkTablesExist,
+  runMigrations,
+} from "../setup/test-helpers";
 
 describe("Auth Integration Tests (e2e)", () => {
   let app: INestApplication | null = null;
@@ -28,7 +34,7 @@ describe("Auth Integration Tests (e2e)", () => {
 
     app = moduleFixture.createNestApplication();
     prisma = moduleFixture.get<PrismaService>(PrismaService);
-    
+
     try {
       const dbReady = await waitForDatabase(prisma, 30);
       if (!dbReady) {
@@ -36,12 +42,12 @@ describe("Auth Integration Tests (e2e)", () => {
         dbAvailable = false;
         return;
       }
-      
+
       const tablesExist = await checkTablesExist(prisma);
       if (!tablesExist) {
         console.log("Database tables not found. Running migrations...");
         await runMigrations();
-        
+
         const tablesExistAfter = await checkTablesExist(prisma);
         if (!tablesExistAfter) {
           console.error("Migrations failed - tables still don't exist");
@@ -50,25 +56,31 @@ describe("Auth Integration Tests (e2e)", () => {
         }
         console.log("Migrations completed successfully");
       }
-      
+
       app.use(cookieParser());
       app.enableCors({
         origin: ["http://localhost:3000"],
         credentials: true,
       });
-      app.useGlobalPipes(new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: false,
-        transform: true,
-        transformOptions: {
-          enableImplicitConversion: true,
-        },
-      }));
-      
+      app.useGlobalPipes(
+        new ValidationPipe({
+          whitelist: true,
+          forbidNonWhitelisted: false,
+          transform: true,
+          transformOptions: {
+            enableImplicitConversion: true,
+          },
+        }),
+      );
+
       await app.init();
       dbAvailable = true;
     } catch (error: any) {
-      if (error?.message?.includes("Can't reach database server") || error?.code === "ECONNREFUSED" || error?.code === "P1001") {
+      if (
+        error?.message?.includes("Can't reach database server") ||
+        error?.code === "ECONNREFUSED" ||
+        error?.code === "P1001"
+      ) {
         console.warn("Database not available, skipping integration tests");
         dbAvailable = false;
         return;
@@ -88,7 +100,7 @@ describe("Auth Integration Tests (e2e)", () => {
         await cleanupTestData(prisma);
         await app.close();
       } catch (error: any) {
-        if (error?.code !== 'P2021') {
+        if (error?.code !== "P2021") {
           console.warn("Error cleaning up test data:", error);
         }
       }
@@ -138,7 +150,7 @@ describe("Auth Integration Tests (e2e)", () => {
 
     it("should reject invalid email", async () => {
       if (skipIfNoDb()) return;
-      const response = await request(app!.getHttpServer())
+      await request(app!.getHttpServer())
         .post("/auth/signup")
         .send({
           email: "invalid-email",
@@ -169,9 +181,11 @@ describe("Auth Integration Tests (e2e)", () => {
           name: "Login User",
           password: "password123",
         });
-      
+
       if (signupResponse.status !== 201) {
-        throw new Error(`Signup failed: ${signupResponse.status} - ${JSON.stringify(signupResponse.body)}`);
+        throw new Error(
+          `Signup failed: ${signupResponse.status} - ${JSON.stringify(signupResponse.body)}`,
+        );
       }
     });
 
@@ -231,7 +245,9 @@ describe("Auth Integration Tests (e2e)", () => {
         });
 
       if (signupResponse.status !== 201) {
-        throw new Error(`Signup failed: ${signupResponse.status} - ${JSON.stringify(signupResponse.body)}`);
+        throw new Error(
+          `Signup failed: ${signupResponse.status} - ${JSON.stringify(signupResponse.body)}`,
+        );
       }
 
       const loginResponse = await request(app!.getHttpServer())
@@ -242,13 +258,22 @@ describe("Auth Integration Tests (e2e)", () => {
         });
 
       if (loginResponse.status !== 200) {
-        throw new Error(`Login failed: ${loginResponse.status} - ${JSON.stringify(loginResponse.body)}`);
+        throw new Error(
+          `Login failed: ${loginResponse.status} - ${JSON.stringify(loginResponse.body)}`,
+        );
       }
 
       const cookies = loginResponse.headers["set-cookie"];
-      const cookieArray = Array.isArray(cookies) ? cookies : cookies ? [cookies] : [];
-      authToken = cookieArray.find((c: string) => c.includes("paycode_session"))?.split(";")[0] || "";
-      
+      const cookieArray = Array.isArray(cookies)
+        ? cookies
+        : cookies
+          ? [cookies]
+          : [];
+      authToken =
+        cookieArray
+          .find((c: string) => c.includes("paycode_session"))
+          ?.split(";")[0] || "";
+
       if (!authToken) {
         throw new Error("Auth token not found in cookies");
       }
@@ -268,9 +293,7 @@ describe("Auth Integration Tests (e2e)", () => {
 
     it("should reject unauthenticated requests", async () => {
       if (skipIfNoDb()) return;
-      await request(app!.getHttpServer())
-        .get("/auth/profile")
-        .expect(401);
+      await request(app!.getHttpServer()).get("/auth/profile").expect(401);
     });
   });
 
@@ -286,10 +309,12 @@ describe("Auth Integration Tests (e2e)", () => {
           name: "Update User",
           password: "password123",
         });
-      
+
       // Signup might return 201 (created) or 409 (already exists from previous test run)
       if (signupResponse.status !== 201 && signupResponse.status !== 409) {
-        throw new Error(`Signup failed: ${signupResponse.status} - ${JSON.stringify(signupResponse.body)}`);
+        throw new Error(
+          `Signup failed: ${signupResponse.status} - ${JSON.stringify(signupResponse.body)}`,
+        );
       }
 
       const loginResponse = await request(app!.getHttpServer())
@@ -300,13 +325,22 @@ describe("Auth Integration Tests (e2e)", () => {
         });
 
       if (loginResponse.status !== 200) {
-        throw new Error(`Login failed: ${loginResponse.status} - ${JSON.stringify(loginResponse.body)}`);
+        throw new Error(
+          `Login failed: ${loginResponse.status} - ${JSON.stringify(loginResponse.body)}`,
+        );
       }
 
       const cookies = loginResponse.headers["set-cookie"];
-      const cookieArray = Array.isArray(cookies) ? cookies : cookies ? [cookies] : [];
-      authToken = cookieArray.find((c: string) => c.includes("paycode_session"))?.split(";")[0] || "";
-      
+      const cookieArray = Array.isArray(cookies)
+        ? cookies
+        : cookies
+          ? [cookies]
+          : [];
+      authToken =
+        cookieArray
+          .find((c: string) => c.includes("paycode_session"))
+          ?.split(";")[0] || "";
+
       if (!authToken) {
         throw new Error("Auth token not found in cookies");
       }
@@ -327,7 +361,7 @@ describe("Auth Integration Tests (e2e)", () => {
 
     it("should update password with current password", async () => {
       if (skipIfNoDb()) return;
-      const response = await request(app!.getHttpServer())
+      await request(app!.getHttpServer())
         .post("/auth/profile")
         .set("Cookie", authToken)
         .send({
@@ -361,4 +395,3 @@ describe("Auth Integration Tests (e2e)", () => {
     });
   });
 });
-

@@ -26,32 +26,45 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (exception instanceof ApplicationError) {
       status = this.mapApplicationErrorToStatus(exception.code);
       message = exception.message;
-      code = typeof exception.code === "string" ? exception.code : String(exception.code);
-      this.logger.warn(`ApplicationError [${code}]: ${message} - Path: ${request.method} ${request.url}`);
+      code =
+        typeof exception.code === "string"
+          ? exception.code
+          : String(exception.code);
+      this.logger.warn(
+        `ApplicationError [${code}]: ${message} - Path: ${request.method} ${request.url}`,
+      );
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
-      
+
       if (typeof exceptionResponse === "object" && exceptionResponse !== null) {
         const responseObj = exceptionResponse as any;
-        
+
         if (Array.isArray(responseObj.message)) {
           message = responseObj.message[0] || "Validation failed";
           code = "VALIDATION_ERROR";
-          this.logger.warn(`ValidationError: ${JSON.stringify(responseObj.message)} - Path: ${request.method} ${request.url} - Body: ${JSON.stringify(request.body)}`);
+          this.logger.warn(
+            `ValidationError: ${JSON.stringify(responseObj.message)} - Path: ${request.method} ${request.url} - Body: ${JSON.stringify(request.body)}`,
+          );
         } else if (responseObj.message) {
           message = responseObj.message;
           code = responseObj.error || "HTTP_ERROR";
-          this.logger.warn(`HttpException [${code}]: ${message} - Path: ${request.method} ${request.url}`);
+          this.logger.warn(
+            `HttpException [${code}]: ${message} - Path: ${request.method} ${request.url}`,
+          );
         } else {
           message = "Request validation failed";
           code = "VALIDATION_ERROR";
-          this.logger.warn(`ValidationError: Request validation failed - Path: ${request.method} ${request.url}`);
+          this.logger.warn(
+            `ValidationError: Request validation failed - Path: ${request.method} ${request.url}`,
+          );
         }
       } else {
         message = exceptionResponse;
         code = "HTTP_ERROR";
-        this.logger.warn(`HttpException: ${message} - Path: ${request.method} ${request.url}`);
+        this.logger.warn(
+          `HttpException: ${message} - Path: ${request.method} ${request.url}`,
+        );
       }
     } else if (exception instanceof Error) {
       message = exception.message;
@@ -70,7 +83,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     };
 
     if (status >= 400 && status < 500) {
-      this.logger.warn(`Bad Request [${status}]: ${JSON.stringify(errorResponse)}`);
+      this.logger.warn(
+        `Bad Request [${status}]: ${JSON.stringify(errorResponse)}`,
+      );
       if (request.body) {
         this.logger.debug(`Request body: ${JSON.stringify(request.body)}`);
       }
@@ -78,7 +93,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
         this.logger.debug(`Request query: ${JSON.stringify(request.query)}`);
       }
     } else if (status >= 500) {
-      this.logger.error(`Internal Server Error [${status}]: ${JSON.stringify(errorResponse)}`);
+      this.logger.error(
+        `Internal Server Error [${status}]: ${JSON.stringify(errorResponse)}`,
+      );
     }
 
     response.status(status).json(errorResponse);

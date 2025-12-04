@@ -125,7 +125,10 @@ export class DepositUseCase {
         wallet,
       };
     } catch (error) {
-      this.logger.error(`Deposit failed for user ${input.userId}, amount ${input.amount}:`, error);
+      this.logger.error(
+        `Deposit failed for user ${input.userId}, amount ${input.amount}:`,
+        error,
+      );
       try {
         await this.walletRepository.update({
           id: wallet.id,
@@ -133,7 +136,10 @@ export class DepositUseCase {
         });
         this.logger.log(`Rollback successful for wallet ${wallet.id}`);
       } catch (rollbackError: any) {
-        this.logger.error(`Rollback failed for wallet ${wallet.id}:`, rollbackError?.message || rollbackError);
+        this.logger.error(
+          `Rollback failed for wallet ${wallet.id}:`,
+          rollbackError?.message || rollbackError,
+        );
         this.logger.error(`Rollback error details:`, rollbackError);
       }
 
@@ -143,7 +149,10 @@ export class DepositUseCase {
           status: TransactionStatus.FAILED,
         });
       } catch (updateError: any) {
-        this.logger.error(`Failed to update transaction ${transaction.id} status to FAILED:`, updateError?.message || updateError);
+        this.logger.error(
+          `Failed to update transaction ${transaction.id} status to FAILED:`,
+          updateError?.message || updateError,
+        );
       }
       throw error;
     }

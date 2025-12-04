@@ -6,7 +6,7 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-  "esModuleInterop": true,
+    "esModuleInterop": true,
     "target": "ES2019",
     "sourceMap": true,
     "outDir": "./dist",
@@ -15,7 +15,7 @@
     "skipLibCheck": true,
     "strict": true,
     "moduleResolution": "node",
-  "types": ["node", "jest"],
+    "types": ["node", "jest"],
     "paths": {
       "@domain/*": ["src/domain/*"],
       "@application/*": ["src/application/*"],
