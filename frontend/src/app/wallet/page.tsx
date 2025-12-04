@@ -75,6 +75,8 @@ export default function WalletPage() {
     const [showReverseModal, setShowReverseModal] = useState(false);
     const [reverseReason, setReverseReason] = useState('');
     const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
+    const [transactionsPage, setTransactionsPage] = useState(1);
+    const transactionsPageSize = 5;
 
     const walletQuery = useQuery<{ wallet: Wallet | null }>({
         queryKey: ['wallet'],
@@ -85,16 +87,17 @@ export default function WalletPage() {
     });
 
     const transactionsQuery = useQuery<{ transactions: Transaction[]; total: number; page: number; pageSize: number }>({
-        queryKey: ['transactions'],
+        queryKey: ['transactions', transactionsPage],
         queryFn: async () => {
-            const { data } = await http.get('/wallet/transactions', { params: { page: 1, pageSize: 10 } });
+            const { data } = await http.get('/wallet/transactions', { params: { page: transactionsPage, pageSize: transactionsPageSize } });
             return {
                 transactions: data.transactions || [],
                 total: data.total || 0,
-                page: data.page || 1,
-                pageSize: data.pageSize || 10,
+                page: data.page || transactionsPage,
+                pageSize: data.pageSize || transactionsPageSize,
             };
         },
+        placeholderData: (previousData) => previousData,
     });
 
     const kpisQuery = useQuery<{ kpis: DashboardKPIs }>({
@@ -129,6 +132,7 @@ export default function WalletPage() {
             setDepositAmount('');
             setDepositDescription('');
             walletQuery.refetch();
+            setTransactionsPage(1);
             transactionsQuery.refetch();
             kpisQuery.refetch();
         },
@@ -155,6 +159,7 @@ export default function WalletPage() {
             setTransferReceiverId('');
             setTransferDescription('');
             walletQuery.refetch();
+            setTransactionsPage(1);
             transactionsQuery.refetch();
             kpisQuery.refetch();
         },
@@ -176,6 +181,7 @@ export default function WalletPage() {
             setReverseReason('');
             setSelectedTransactionId(null);
             walletQuery.refetch();
+            setTransactionsPage(1);
             transactionsQuery.refetch();
             kpisQuery.refetch();
         },
@@ -284,6 +290,16 @@ export default function WalletPage() {
         return tx.amount >= 0;
     };
 
+    const totalTransactions = transactionsQuery.data?.total || 0;
+    const totalPages = Math.max(1, Math.ceil(totalTransactions / transactionsPageSize));
+    const canGoPrev = transactionsPage > 1;
+    const canGoNext = transactionsPage < totalPages;
+
+    const goToPage = (page: number) => {
+        if (page < 1 || page > totalPages) return;
+        setTransactionsPage(page);
+    };
+
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">
             <h1 className="text-3xl font-bold">Carteira PAYCODE</h1>
@@ -366,50 +382,91 @@ export default function WalletPage() {
                         <Skeleton className="h-16" />
                     </div>
                 ) : transactionsQuery.data && transactionsQuery.data.transactions.length > 0 ? (
-                    <div className="space-y-2">
-                        {transactionsQuery.data.transactions.map((tx) => {
-                            const isCredit = isCreditTransaction(tx);
-                            return (
-                            <div key={tx.id} className="border p-4 rounded-lg">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex-1">
-                                        <p className="font-medium">{transactionTypeLabels[tx.type] ?? tx.type}</p>
-                                        <p className="text-sm text-gray-600">{tx.description || 'Sem descrição'}</p>
-                                        {tx.type === 'TRANSFER' && tx.sender && (
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                De: {tx.sender.name} ({tx.sender.email})
-                                            </p>
-                                        )}
-                                        {tx.type === 'TRANSFER' && tx.receiver && (
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                Para: {tx.receiver.name} ({tx.receiver.email})
-                                            </p>
-                                        )}
-                                        <p className="text-xs text-gray-500 mt-1">{formatDate(tx.createdAt)}</p>
-                                    </div>
-                                    <div className="text-right flex items-center gap-4">
-                                        <div>
-                                            <p className={`font-bold ${isCredit ? 'text-green-600' : 'text-red-600'}`}>
-                                                {isCredit ? '+' : '-'}
-                                                {formatCurrency(tx.amount)}
-                                            </p>
-                                            <p className={`text-sm ${tx.status === 'COMPLETED' ? 'text-green-600' : tx.status === 'FAILED' ? 'text-red-600' : tx.status === 'REVERSED' ? 'text-orange-600' : 'text-yellow-600'}`}>
-                                                {transactionStatusLabels[tx.status] ?? tx.status}
-                                            </p>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            {transactionsQuery.data.transactions.map((tx) => {
+                                const isCredit = isCreditTransaction(tx);
+                                return (
+                                    <div key={tx.id} className="border p-4 rounded-lg">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1">
+                                                <p className="font-medium">{transactionTypeLabels[tx.type] ?? tx.type}</p>
+                                                <p className="text-sm text-gray-600">{tx.description || 'Sem descrição'}</p>
+                                                {tx.type === 'TRANSFER' && tx.sender && (
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        De: {tx.sender.name} ({tx.sender.email})
+                                                    </p>
+                                                )}
+                                                {tx.type === 'TRANSFER' && tx.receiver && (
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Para: {tx.receiver.name} ({tx.receiver.email})
+                                                    </p>
+                                                )}
+                                                <p className="text-xs text-gray-500 mt-1">{formatDate(tx.createdAt)}</p>
+                                            </div>
+                                            <div className="text-right flex items-center gap-4">
+                                                <div>
+                                                    <p className={`font-bold ${isCredit ? 'text-green-600' : 'text-red-600'}`}>
+                                                        {isCredit ? '+' : '-'}
+                                                        {formatCurrency(tx.amount)}
+                                                    </p>
+                                                    <p className={`text-sm ${tx.status === 'COMPLETED' ? 'text-green-600' : tx.status === 'FAILED' ? 'text-red-600' : tx.status === 'REVERSED' ? 'text-orange-600' : 'text-yellow-600'}`}>
+                                                        {transactionStatusLabels[tx.status] ?? tx.status}
+                                                    </p>
+                                                </div>
+                                                {canReverseTransaction(tx) && (
+                                                    <button
+                                                        onClick={() => handleReverseClick(tx.id)}
+                                                        className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition"
+                                                        title="Reverter transação"
+                                                    >
+                                                        Reverter
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                        {canReverseTransaction(tx) && (
-                                            <button
-                                                onClick={() => handleReverseClick(tx.id)}
-                                                className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition"
-                                                title="Reverter transação"
-                                            >
-                                                Reverter
-                                            </button>
-                                        )}
                                     </div>
-                                </div>
+                                );
+                            })}
+                        </div>
+                        <div className="flex flex-col items-center gap-3 border-t pt-4">
+                            <p className="text-sm text-gray-500">
+                                Página {transactionsPage} de {totalPages} • {totalTransactions} transações
+                            </p>
+                            <div className="flex flex-wrap items-center justify-center gap-2">
+                                <button
+                                    onClick={() => goToPage(1)}
+                                    disabled={!canGoPrev}
+                                    className={`px-3 py-1 rounded-lg border w-full sm:w-auto text-center ${canGoPrev ? 'text-gray-700 border-gray-300 hover:bg-gray-100' : 'text-gray-400 border-gray-200 cursor-not-allowed'}`}
+                                >
+                                    Primeiro
+                                </button>
+                                <button
+                                    onClick={() => goToPage(transactionsPage - 1)}
+                                    disabled={!canGoPrev}
+                                    className={`px-3 py-1 rounded-lg border w-full sm:w-auto text-center ${canGoPrev ? 'text-gray-700 border-gray-300 hover:bg-gray-100' : 'text-gray-400 border-gray-200 cursor-not-allowed'}`}
+                                >
+                                    Anterior
+                                </button>
+                                <span className="px-3 py-1 text-sm text-gray-600">
+                                    {transactionsPage} / {totalPages}
+                                </span>
+                                <button
+                                    onClick={() => goToPage(transactionsPage + 1)}
+                                    disabled={!canGoNext}
+                                    className={`px-3 py-1 rounded-lg border w-full sm:w-auto text-center ${canGoNext ? 'text-gray-700 border-gray-300 hover:bg-gray-100' : 'text-gray-400 border-gray-200 cursor-not-allowed'}`}
+                                >
+                                    Próxima
+                                </button>
+                                <button
+                                    onClick={() => goToPage(totalPages)}
+                                    disabled={!canGoNext}
+                                    className={`px-3 py-1 rounded-lg border w-full sm:w-auto text-center ${canGoNext ? 'text-gray-700 border-gray-300 hover:bg-gray-100' : 'text-gray-400 border-gray-200 cursor-not-allowed'}`}
+                                >
+                                    Última
+                                </button>
                             </div>
-                        )})}
+                        </div>
                     </div>
                 ) : (
                     <p className="text-gray-500">Nenhuma transação ainda</p>

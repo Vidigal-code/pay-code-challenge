@@ -23,7 +23,7 @@ export class FinancialEventsGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer()
-  server!: Server;
+  server!: Server | null;
 
   private readonly logger = new Logger(FinancialEventsGateway.name);
   private readonly connectedUsers = new Map<string, string>(); // socketId -> userId
@@ -92,20 +92,36 @@ export class FinancialEventsGateway
     }
   }
 
+  private getServerOrLog(): Server | null {
+    if (!this.server) {
+      this.logger.warn("Financial events gateway server not initialized yet");
+      return null;
+    }
+    return this.server;
+  }
+
   // Métodos para emitir eventos para clientes específicos
   emitTransactionCreated(userId: string, data: any) {
-    this.server.to(`user:${userId}`).emit("transaction.created", data);
+    const server = this.getServerOrLog();
+    if (!server) return;
+    server.to(`user:${userId}`).emit("transaction.created", data);
   }
 
   emitTransactionCompleted(userId: string, data: any) {
-    this.server.to(`user:${userId}`).emit("transaction.completed", data);
+    const server = this.getServerOrLog();
+    if (!server) return;
+    server.to(`user:${userId}`).emit("transaction.completed", data);
   }
 
   emitTransactionReversed(userId: string, data: any) {
-    this.server.to(`user:${userId}`).emit("transaction.reversed", data);
+    const server = this.getServerOrLog();
+    if (!server) return;
+    server.to(`user:${userId}`).emit("transaction.reversed", data);
   }
 
   emitWalletBalanceUpdated(userId: string, data: any) {
-    this.server.to(`user:${userId}`).emit("wallet.balance.updated", data);
+    const server = this.getServerOrLog();
+    if (!server) return;
+    server.to(`user:${userId}`).emit("wallet.balance.updated", data);
   }
 }
