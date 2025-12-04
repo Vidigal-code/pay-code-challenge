@@ -1,41 +1,57 @@
 "use client";
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { http } from '../../lib/http';
-import { getErrorMessage, getSuccessMessage } from '../../lib/error';
-import { useToast } from '../../hooks/useToast';
+import { http } from '@/lib/http';
+import { getErrorMessage, getSuccessMessage } from '@/lib/error';
+import { useToast } from '@/hooks/useToast';
 import Skeleton from '../../components/Skeleton';
-import { formatDate } from '../../lib/date-utils';
+import { formatDate } from '@/lib/date-utils';
 
-interface Wallet {
+export interface Wallet {
     id: string;
     userId: string;
     balance: number;
 }
 
-interface Transaction {
+
+export type TransactionType =
+    | 'DEPOSIT'
+    | 'TRANSFER'
+    | 'REVERSAL';
+
+export type TransactionStatus =
+    | 'PENDING'
+    | 'COMPLETED'
+    | 'REVERSED'
+    | 'FAILED';
+
+
+export interface TransactionParticipant {
+    id: string;
+    name: string;
+    email: string;
+}
+
+
+export interface Transaction {
     id: string;
     walletId: string;
+
     senderId?: string;
     receiverId?: string;
-    type: 'DEPOSIT' | 'TRANSFER' | 'REVERSAL';
-    status: 'PENDING' | 'COMPLETED' | 'REVERSED' | 'FAILED';
+
+    type: TransactionType;
+    status: TransactionStatus;
+
     amount: number;
     description?: string;
     createdAt: string;
-    sender?: {
-        id: string;
-        name: string;
-        email: string;
-    };
-    receiver?: {
-        id: string;
-        name: string;
-        email: string;
-    };
+
+    sender?: TransactionParticipant;
+    receiver?: TransactionParticipant;
 }
 
-interface DashboardKPIs {
+export interface DashboardKPIs {
     totalBalance: number;
     totalDeposits: number;
     totalTransfers: number;
@@ -45,6 +61,7 @@ interface DashboardKPIs {
     failedTransactions: number;
     reversedTransactions: number;
 }
+
 
 export default function WalletPage() {
     const { show } = useToast();
@@ -228,6 +245,45 @@ export default function WalletPage() {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value));
     };
 
+    const profileId = profileQuery.data?.id;
+
+    const transactionTypeLabels: Record<TransactionType, string> = {
+        DEPOSIT: 'Depósito',
+        TRANSFER: 'Transferência',
+        REVERSAL: 'Reversão',
+    };
+
+    const transactionStatusLabels: Record<TransactionStatus, string> = {
+        PENDING: 'Pendente',
+        COMPLETED: 'Concluída',
+        REVERSED: 'Revertida',
+        FAILED: 'Falhou',
+    };
+
+    const isCreditTransaction = (tx: Transaction) => {
+        if (tx.type === 'DEPOSIT') {
+            return true;
+        }
+
+        if (tx.type === 'TRANSFER') {
+            if (profileId) {
+                if (tx.receiverId === profileId) return true;
+                if (tx.senderId === profileId) return false;
+            }
+            return tx.amount >= 0;
+        }
+
+        if (tx.type === 'REVERSAL') {
+            if (profileId) {
+                if (tx.receiverId === profileId) return true;
+                if (tx.senderId === profileId) return false;
+            }
+            return tx.amount >= 0;
+        }
+
+        return tx.amount >= 0;
+    };
+
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">
             <h1 className="text-3xl font-bold">Carteira PAYCODE</h1>
@@ -311,11 +367,13 @@ export default function WalletPage() {
                     </div>
                 ) : transactionsQuery.data && transactionsQuery.data.transactions.length > 0 ? (
                     <div className="space-y-2">
-                        {transactionsQuery.data.transactions.map((tx) => (
+                        {transactionsQuery.data.transactions.map((tx) => {
+                            const isCredit = isCreditTransaction(tx);
+                            return (
                             <div key={tx.id} className="border p-4 rounded-lg">
                                 <div className="flex justify-between items-start">
                                     <div className="flex-1">
-                                        <p className="font-medium">{tx.type}</p>
+                                        <p className="font-medium">{transactionTypeLabels[tx.type] ?? tx.type}</p>
                                         <p className="text-sm text-gray-600">{tx.description || 'Sem descrição'}</p>
                                         {tx.type === 'TRANSFER' && tx.sender && (
                                             <p className="text-xs text-gray-500 mt-1">
@@ -331,12 +389,12 @@ export default function WalletPage() {
                                     </div>
                                     <div className="text-right flex items-center gap-4">
                                         <div>
-                                            <p className={`font-bold ${tx.type === 'DEPOSIT' || (tx.type === 'TRANSFER' && tx.receiverId) ? 'text-green-600' : 'text-red-600'}`}>
-                                                {tx.type === 'DEPOSIT' || (tx.type === 'TRANSFER' && tx.receiverId) ? '+' : '-'}
+                                            <p className={`font-bold ${isCredit ? 'text-green-600' : 'text-red-600'}`}>
+                                                {isCredit ? '+' : '-'}
                                                 {formatCurrency(tx.amount)}
                                             </p>
                                             <p className={`text-sm ${tx.status === 'COMPLETED' ? 'text-green-600' : tx.status === 'FAILED' ? 'text-red-600' : tx.status === 'REVERSED' ? 'text-orange-600' : 'text-yellow-600'}`}>
-                                                {tx.status}
+                                                {transactionStatusLabels[tx.status] ?? tx.status}
                                             </p>
                                         </div>
                                         {canReverseTransaction(tx) && (
@@ -351,7 +409,7 @@ export default function WalletPage() {
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                        )})}
                     </div>
                 ) : (
                     <p className="text-gray-500">Nenhuma transação ainda</p>
