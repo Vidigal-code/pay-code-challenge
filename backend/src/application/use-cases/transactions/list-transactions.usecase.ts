@@ -1,5 +1,6 @@
 import { TransactionRepository } from "@domain/repositories/transaction.repository";
 import { UserRepository } from "@domain/repositories/user.repository";
+import { WalletRepository } from "@domain/repositories/wallet.repository";
 import { ApplicationError } from "@application/errors/application-error";
 import {
   Transaction,
@@ -26,6 +27,7 @@ export class ListTransactionsUseCase {
   constructor(
     private readonly transactionRepository: TransactionRepository,
     private readonly userRepository: UserRepository,
+    private readonly walletRepository: WalletRepository,
   ) {}
 
   async execute(input: ListTransactionsInput): Promise<ListTransactionsOutput> {
@@ -53,15 +55,24 @@ export class ListTransactionsUseCase {
       throw new ApplicationError("INVALID_TRANSACTION_STATUS");
     }
 
+    const wallet = await this.walletRepository.findByUserId(user.id);
+    if (!wallet) {
+      return {
+        transactions: [],
+        total: 0,
+        page,
+        pageSize,
+      };
+    }
+
     const result = await this.transactionRepository.list({
-      userId: input.userId,
+      walletId: wallet.id,
       type,
       status,
       page,
       pageSize,
     });
 
-    // Enrich transactions with user information
     const enrichedTransactions = await Promise.all(
       result.transactions.map(async (transaction) => {
         const transactionData = transaction.toJSON();

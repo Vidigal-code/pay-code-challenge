@@ -65,9 +65,9 @@ import { USER_REPOSITORY } from "@domain/repositories/user.repository";
     },
     {
       provide: ListTransactionsUseCase,
-      useFactory: (transactionRepo, userRepo) =>
-        new ListTransactionsUseCase(transactionRepo, userRepo),
-      inject: [TRANSACTION_REPOSITORY, USER_REPOSITORY],
+      useFactory: (transactionRepo, userRepo, walletRepo) =>
+        new ListTransactionsUseCase(transactionRepo, userRepo, walletRepo),
+      inject: [TRANSACTION_REPOSITORY, USER_REPOSITORY, WALLET_REPOSITORY],
     },
     {
       provide: GetDashboardKPIsUseCase,
