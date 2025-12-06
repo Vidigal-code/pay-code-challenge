@@ -139,4 +139,3 @@ jobs:
       - name: Run frontend lint
         working-directory: ./frontend
         run: npm run lint || true
-
