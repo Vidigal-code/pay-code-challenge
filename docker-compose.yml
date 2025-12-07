@@ -140,11 +140,6 @@ services:
   api-test:
     build: ./backend
     env_file: ./backend/.env
-    environment:
-      - DOCKER_ENV=true
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/paycode?schema=public
-      - REDIS_URL=redis://redis:6379
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
     working_dir: /app
     volumes:
       - ./backend:/app
