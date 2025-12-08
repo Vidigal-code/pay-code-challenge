@@ -17,9 +17,9 @@ jobs:
       db:
         image: postgres:16-alpine
         env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-          POSTGRES_DB: paycode_test
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
         ports:
           - 5432:5432
         options: >-
@@ -41,8 +41,8 @@ jobs:
       rabbitmq:
         image: rabbitmq:3-management
         env:
-          RABBITMQ_DEFAULT_USER: guest
-          RABBITMQ_DEFAULT_PASS: guest
+          RABBITMQ_DEFAULT_USER: ${{ secrets.RABBITMQ_USER }}
+          RABBITMQ_DEFAULT_PASS: ${{ secrets.RABBITMQ_PASS }}
         ports:
           - 5672:5672
         options: >-
@@ -69,25 +69,25 @@ jobs:
         working-directory: ./backend
         run: npx prisma generate
         env:
-          DATABASE_URL: postgresql://postgres:postgres@db:5432/paycode_test?schema=public
+          DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@db:5432/${{ secrets.POSTGRES_DB }}?schema=public
       
       - name: Run database migrations
         working-directory: ./backend
         run: npx prisma migrate deploy
         env:
-          DATABASE_URL: postgresql://postgres:postgres@db:5432/paycode_test?schema=public
+          DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@db:5432/${{ secrets.POSTGRES_DB }}?schema=public
       
       - name: Run unit tests
         working-directory: ./backend
         run: npm run test:unit
         env:
-          DATABASE_URL: postgresql://postgres:postgres@db:5432/paycode_test?schema=public
-          REDIS_URL: redis://redis:6379
-          RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+          DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@db:5432/${{ secrets.POSTGRES_DB }}?schema=public
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          RABBITMQ_URL: ${{ secrets.RABBITMQ_URL }}
           NODE_ENV: test
           CI: true
-          JWT_SECRET: test-secret-key-for-ci
-          JWE_SECRET: test-secret-key-for-ci-must-be-32-chars-long!!
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWE_SECRET: ${{ secrets.JWE_SECRET }}
 
   frontend-tests:
     name: Frontend Tests
@@ -139,4 +139,3 @@ jobs:
       - name: Run frontend lint
         working-directory: ./frontend
         run: npm run lint || true
-
